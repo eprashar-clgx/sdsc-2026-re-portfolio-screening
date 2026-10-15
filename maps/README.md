@@ -43,11 +43,19 @@ In Builder, create a map and add the tables as layers: `growth_h3_r9` (cells), `
 Add an **AI agent** to the map and fill in:
 
 - **Use Case** and **Instructions**: copy them from [`agent_instructions.md`](agent_instructions.md).
-- **Semantic model**: [`../semantic_models/portfolio_screening.yaml`](../semantic_models/portfolio_screening.yaml)
-  with every `YOUR_PROJECT.YOUR_DATASET` replaced by your project and dataset. The notebook's last code cell does
-  the replacement for you; or use find and replace in a text editor. Then import the file.
 - **Capabilities**: turn on **Query sources** so the agent can run SQL.
 
-## 4. Ask the agent
+Leave the **semantic model** empty for now: step 5 adds it.
+
+## 4. Step 5: before and after the semantic model
+
+1. **Before:** ask *"Which of my properties sit in high-growth cells?"* and note the answer and how the agent
+   got there.
+2. **Add the semantic model:** take [`../semantic_models/portfolio_screening.yaml`](../semantic_models/portfolio_screening.yaml),
+   replace every `YOUR_PROJECT.YOUR_DATASET` with your project and dataset (the notebook's last code cell does
+   this for you, or use find and replace), and import it in the agent's semantic model settings.
+3. **After:** ask the same question again. Expected: 473 of your 929 properties, every time.
+
+## 5. Keep asking
 
 Use the questions in [`prompts.md`](prompts.md); each has the expected answer.

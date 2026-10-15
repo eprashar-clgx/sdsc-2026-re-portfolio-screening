@@ -11,7 +11,8 @@ every column, how they join, how to classify cells, and which measures can be ad
    [`../maps/README.md`](../maps/README.md).
 2. Replace every `YOUR_PROJECT.YOUR_DATASET` in the file with the project and dataset of your tables. The last
    code cell of the [notebook](../notebooks/portfolio_screening.ipynb) does this for you.
-3. In the agent's settings, import the file as its semantic model.
+3. In step 5, after asking the agent once without it, import the file in the agent's semantic model settings
+   and ask again.
 
 ## What it covers
 
