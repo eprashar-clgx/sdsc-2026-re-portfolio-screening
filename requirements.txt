@@ -1,0 +1,6 @@
+# Packages for the follow-along notebook (notebooks/portfolio_screening.ipynb).
+pandas>=2.0
+geopandas>=0.14
+pyarrow>=14
+matplotlib>=3.7
+jupyterlab>=4

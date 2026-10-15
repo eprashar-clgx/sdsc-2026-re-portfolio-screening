@@ -1,0 +1,53 @@
+# Workshop map
+
+Build the Section 2 map in your own CARTO account. The same steps are at the end of the
+[notebook](../notebooks/portfolio_screening.ipynb).
+
+## 1. Load the data
+
+You need four files from [`../data/`](../data/). Keep each table's name the same as its file name, and put
+all four in the same dataset:
+
+| File | Table name | What it is |
+|---|---|---|
+| `portfolio_risk.parquet` | `portfolio_risk` | Your 929 properties with climate risk (checkpoint 1) |
+| `growth_h3_r9.parquet` | `growth_h3_r9` | 459 H3 cells with growth and risk measures |
+| `growth_parcels.parquet` | `growth_parcels` | 918 properties where new development is happening |
+| `parcel_essentials.parquet` | `parcel_essentials` | Every parcel in the study area (about 12 MB) |
+
+**Option A · In the browser**
+
+1. Download the four files from this repo's `data/` folder (or use the ones in your clone).
+2. In CARTO Workspace, open **Data Explorer** and click **Import data**.
+3. Choose a file, then pick the **CARTO Data Warehouse** connection and your **private** dataset. Keep the
+   suggested table name if it matches the file name; otherwise type it.
+4. Repeat for the other three files.
+5. Open one of the new tables and note its full name, shown at the top, e.g.
+   `carto-dw-ac-xxxx.private_yourname_xxxx.portfolio_risk`. Everything before the last dot is your **project and
+   dataset**.
+
+**Option B · In Claude, with the CARTO MCP server**
+
+1. Connect the CARTO MCP server to Claude: see [`../mcp/carto_on_claude.md`](../mcp/carto_on_claude.md).
+2. Ask Claude to import the files from their GitHub URLs (the notebook prints them), e.g. *"Import these four
+   files into my CARTO Data Warehouse private dataset, naming each table after its file name, and tell me the
+   full table names."*
+
+## 2. Create the map
+
+In Builder, create a map and add the tables as layers: `growth_h3_r9` (cells), `growth_parcels`, and
+`portfolio_risk` on top. `parcel_essentials` is optional on the map; the agent can query it either way.
+
+## 3. Add the AI agent
+
+Add an **AI agent** to the map and fill in:
+
+- **Use Case** and **Instructions**: copy them from [`agent_instructions.md`](agent_instructions.md).
+- **Semantic model**: [`../semantic_models/portfolio_screening.yaml`](../semantic_models/portfolio_screening.yaml)
+  with every `YOUR_PROJECT.YOUR_DATASET` replaced by your project and dataset. The notebook's last code cell does
+  the replacement for you; or use find and replace in a text editor. Then import the file.
+- **Capabilities**: turn on **Query sources** so the agent can run SQL.
+
+## 4. Ask the agent
+
+Use the questions in [`prompts.md`](prompts.md); each has the expected answer.
