@@ -8,7 +8,9 @@ Source: [CARTO docs: Claude](https://docs.carto.com/carto-for-agents/connect-you
 ## You need
 
 - A CARTO account with the Editor or Admin role (needed to import data and create maps).
-- A Claude plan that supports custom connectors.
+- Claude in your browser ([claude.ai](https://claude.ai)) on a plan that supports custom connectors. On Team
+  and Enterprise plans an Owner adds the connector to the organization first; you then find it under
+  **Customize → Connectors** and click **Connect**.
 
 ## 1. Copy your MCP Server URL
 
@@ -24,22 +26,23 @@ the **SSO login** URL instead.
 
 ## 2. Add it to Claude
 
-**Claude.ai (web)** or **Claude Desktop**:
+1. In Claude, go to **Customize → Connectors**.
+2. Click **+ Add**, then **Add custom connector**.
+3. Name it `CARTO`, paste the MCP Server URL and click **Continue**.
+4. Keep the authentication settings Claude detects (sign in with OAuth, Claude's published identity) and
+   click **Add**.
+5. Click **Connect** and sign in to CARTO when asked.
 
-1. Open **Settings → Connectors**.
-2. Click **Add custom connector**.
-3. Name it `CARTO` and paste the MCP Server URL.
-4. Click **Add**, then **Connect**.
-5. Sign in to CARTO when asked.
+No OAuth client, token or request header is needed: CARTO recognises Claude automatically. This connector uses
+your own CARTO account, not the shared workshop key.
 
-No OAuth client or token is needed: CARTO recognises Claude automatically.
+To use it, start a chat, click **+ → Connectors**, and turn **CARTO** on.
 
 ## 3. Try it
 
 - "List my CARTO connections."
-- "Import these four files into my CARTO Data Warehouse private dataset, naming each table after its file
-  name, and tell me the full table names: …" (paste the four URLs printed in part 4 of the
-  [notebook](../notebooks/portfolio_screening.ipynb)).
+- The import prompt in part 4 of the [notebook](../notebooks/portfolio_screening.ipynb), which loads the four
+  workshop files into your CARTO Data Warehouse.
 - "Show `growth_h3_r9` on a map coloured by `k1_growth_share`."
 
 Optional: install CARTO's Agent Skills plugin so Claude uses the tools more reliably. In Claude, open

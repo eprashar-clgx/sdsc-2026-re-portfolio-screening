@@ -1,0 +1,9 @@
+# Python environments and editor files
+.venv/
+venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+
+# Written by the notebook's semantic model cell, with your own dataset name in it
+portfolio_screening_semantic_model.yaml

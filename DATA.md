@@ -1,9 +1,9 @@
 # Data dictionary
 
 All files cover the same study area: 8 census tracts in south Lee County, Florida (Bonita Springs, Estero,
-north Naples). Geometries are WGS84 (EPSG:4326). GeoParquet files open with GeoPandas
-(`geopandas.read_parquet`), DuckDB, QGIS and CARTO. CARTO renames each file's `geometry` column to `geom` on
-import.
+north Naples). Geometries are WGS84 (EPSG:4326). GeoParquet files open with pandas (`pandas.read_parquet`,
+with the geometry as WKB bytes that `shapely.from_wkb` decodes), GeoPandas, DuckDB, QGIS and CARTO. CARTO
+renames each file's `geometry` column to `geom` on import.
 
 ## `growth_h3_r9.parquet` · growth layer (459 cells)
 

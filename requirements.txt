@@ -1,6 +1,10 @@
-# Packages for the follow-along notebook (notebooks/portfolio_screening.ipynb).
+# Packages for the follow-along notebook (notebooks/portfolio_screening.ipynb), run in VS Code.
 pandas>=2.0
-geopandas>=0.14
 pyarrow>=14
+shapely>=2.0
 matplotlib>=3.7
-jupyterlab>=4
+ipykernel>=6
+
+# Optional extras (not needed for the notebook):
+#   pip install jupyterlab   to run the notebook in your browser instead of VS Code (about 90 more packages)
+#   pip install geopandas    for your own spatial analysis of the data files
