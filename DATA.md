@@ -49,41 +49,42 @@ Column names match the Parcel Essentials product, so the semantic model in
 - **Geometry:** the parcel polygon, in `parcel_geometry_wkt`.
 - **Left out:** owner name, care-of name and the owner's mailing street address.
 
-## `portfolio_messy.csv` · your messy address list (1,130 rows)
+## `portfolio_messy.csv` · your messy address list (1,147 rows)
 
 | Column | Meaning |
 |---|---|
 | `input_id` | Row number |
 | `address` | Address as typed, with errors |
 
-## `portfolio_truth.csv` · ground truth (1,130 rows)
+## `portfolio_truth.csv` · ground truth (1,147 rows)
 
 The answer key for the messy list: use it to check match rates by error type.
 
 | Column | Meaning |
 |---|---|
 | `input_id`, `address` | As in `portfolio_messy.csv` |
-| `error_type` | clean, abbreviation, typo, zip, case_punct, unit, wrong_city or unmatchable |
+| `error_type` | clean, abbreviation, typo, zip, case_punct, unit, wrong_city, unmatchable, or alternate_address (the second house number of a duplex: the same property as another row) |
 | `error_detail` | What was changed, e.g. `DR -> Drive` |
 | `is_duplicate` | `True` if the row repeats a property already in the list |
 | `truth_clip` | The property's real CLIP (empty for unmatchable rows) |
 | `clean_address` | The address before errors were added |
 
-## `portfolio_matches.parquet` · cached address lookups (1,130 rows)
+## `portfolio_matches.parquet` · cached address lookups (1,147 rows)
 
-The Cotality MCP result for each messy row (tool `clip-find_property_by_address`).
+The Cotality MCP result for each messy row: address recognition (`li-recognize_address`) for the CLIP and
+standardized address, then `clip-find_property_by_clip` for the location.
 
 | Column | Meaning |
 |---|---|
 | `input_id`, `input_address` | As in `portfolio_messy.csv` |
-| `match_status` | `matched` or `not_found` |
+| `match_status` | `matched` (match score 8–10), `needs_review` (a low-scored best guess, e.g. a condo without its unit; left out of the portfolio) or `not_found` |
 | `clip` | Cotality property ID |
 | `resolved_address` | Standardised address |
 | `match_confidence` | Property match score, 0–10 |
 | `address_match_code`, `address_match_description` | How the address was matched, e.g. "Matched unique number, postcode changed" |
 | `latitude`, `longitude`, `geometry` | Property location (empty when not found) |
 
-## `portfolio_risk.parquet` · checkpoint 1 (929 properties)
+## `portfolio_risk.parquet` · checkpoint 1 (931 properties)
 
 One row per resolved property (duplicates collapsed), with Cotality climate risk (tool
 `at-get_property_climate_risk`). Scores run from 1 to 100; higher is riskier.

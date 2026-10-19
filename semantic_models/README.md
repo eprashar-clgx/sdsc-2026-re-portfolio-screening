@@ -18,7 +18,7 @@ every column, how they join, how to classify cells, and which measures can be ad
 
 | Dataset | Table | Grain |
 |---|---|---|
-| `portfolio_risk` | `portfolio_risk` | Your 929 properties, with Cotality climate risk |
+| `portfolio_risk` | `portfolio_risk` | Your 931 properties, with Cotality climate risk |
 | `growth_h3_r9` | `growth_h3_r9` | 459 H3 resolution-9 cells |
 | `growth_parcels` | `growth_parcels` | 918 properties in a growth stage |
 | `parcel_essentials` | `parcel_essentials` | Every parcel and property in the study area |

@@ -10,7 +10,7 @@ all four in the same dataset:
 
 | File | Table name | What it is |
 |---|---|---|
-| `portfolio_risk.parquet` | `portfolio_risk` | Your 929 properties with climate risk (checkpoint 1) |
+| `portfolio_risk.parquet` | `portfolio_risk` | Your 931 properties with climate risk (checkpoint 1) |
 | `growth_h3_r9.parquet` | `growth_h3_r9` | 459 H3 cells with growth and risk measures |
 | `growth_parcels.parquet` | `growth_parcels` | 918 properties where new development is happening |
 | `parcel_essentials.parquet` | `parcel_essentials` | Every parcel in the study area (about 12 MB) |
@@ -54,7 +54,7 @@ Leave the **semantic model** empty for now: step 5 adds it.
 2. **Add the semantic model:** take [`../semantic_models/portfolio_screening.yaml`](../semantic_models/portfolio_screening.yaml),
    replace every `YOUR_PROJECT.YOUR_DATASET` with your project and dataset (the notebook's last code cell does
    this for you, or use find and replace), and import it in the agent's semantic model settings.
-3. **After:** ask the same question again. Expected: 473 of your 929 properties, every time.
+3. **After:** ask the same question again. Expected: 474 of your 931 properties, every time.
 
 ## 5. Keep asking
 

@@ -6,7 +6,7 @@ version: 0.1.1
 semantic_model:
 - name: sdsc_portfolio_screening
   description: 'Portfolio screening for south Lee County, Florida (8 census tracts in Bonita Springs and Estero):
-    the user''s 929-property portfolio with Cotality climate risk (portfolio_risk), an H3 resolution-9 growth and
+    the user''s 931-property portfolio with Cotality climate risk (portfolio_risk), an H3 resolution-9 growth and
     risk grid (growth_h3_r9), Cotality Growth Intelligence for the 918 properties in a growth stage (growth_parcels)
     and Parcel Essentials for every parcel (parcel_essentials). Cells are classified into Pursue, Watchlist, Hold
     and Reassess by fixed growth and risk cutoffs.'
@@ -19,16 +19,16 @@ semantic_model:
     - 2x2
     instructions: |
       WORKSHOP: this map supports a portfolio screening exercise in south Lee County, Florida - which of the user's properties sit where new development (growth) meets high climate risk. Four tables, all in one dataset:
-        portfolio_risk    `YOUR_PROJECT.YOUR_DATASET.portfolio_risk` - the user's portfolio: 929 properties, one row per property (clip), with Cotality climate risk scores and the H3 cell (h3) of the property's location.
+        portfolio_risk    `YOUR_PROJECT.YOUR_DATASET.portfolio_risk` - the user's portfolio: 931 properties, one row per property (clip), with Cotality climate risk scores and the H3 cell (h3) of the property's location.
         growth_h3_r9      `YOUR_PROJECT.YOUR_DATASET.growth_h3_r9` - 459 H3 resolution-9 cells with parcel counts, growth counts and composite risk score (CRS) medians, raw and smoothed over each cell and its 6 neighbours (k1_*). Cells with fewer than 5 parcels are excluded.
         growth_parcels    `YOUR_PROJECT.YOUR_DATASET.growth_parcels` - 918 properties in a growth stage (Cotality Growth Intelligence), one row per property, with the parcel centroid (geom) and H3 cell (h3).
         parcel_essentials `YOUR_PROJECT.YOUR_DATASET.parcel_essentials` - Parcel Essentials for all 21,447 properties on 15,325 parcels in the study area, one row per (parcel_shape_id, clip) pair.
       "My properties", "my portfolio", "our properties" and "the portfolio" always mean portfolio_risk. parcel_essentials and growth_parcels describe the market around the portfolio, never the user's holdings.
 
       JOINS:
-        portfolio_risk to growth_h3_r9: portfolio_risk.h3 = growth_h3_r9.h3 (h3 is the resolution-9 cell of the property's lat/lon). 928 of the 929 properties fall in a cell; the other lies in an excluded cell - report it as not assigned to a cell rather than dropping it silently.
+        portfolio_risk to growth_h3_r9: portfolio_risk.h3 = growth_h3_r9.h3 (h3 is the resolution-9 cell of the property's lat/lon). 930 of the 931 properties fall in a cell; the other lies in an excluded cell - report it as not assigned to a cell rather than dropping it silently.
         growth_parcels to growth_h3_r9: growth_parcels.h3 = growth_h3_r9.h3 (913 of 918; 5 lie in excluded cells).
-        portfolio_risk to parcel_essentials: clip. parcel_essentials has one row per (parcel_shape_id, clip), so collapse it to one row per clip (GROUP BY clip with ANY_VALUE) before joining, or count with COUNT(DISTINCT clip). 928 of the 929 portfolio CLIPs are in parcel_essentials.
+        portfolio_risk to parcel_essentials: clip. parcel_essentials has one row per (parcel_shape_id, clip), so collapse it to one row per clip (GROUP BY clip with ANY_VALUE) before joining, or count with COUNT(DISTINCT clip). 930 of the 931 portfolio CLIPs are in parcel_essentials.
         growth_parcels to parcel_essentials: clip (see JOIN below).
         Never join portfolio_risk to growth_parcels on clip: the portfolio holds only existing properties, so no CLIP is in both tables. Relate them through the H3 cell.
 
@@ -66,7 +66,7 @@ semantic_model:
     examples:
     - |
       Q: Which of my properties sit in high-growth cells?
-      Notes: Assign each property to its cell with portfolio_risk.h3 = growth_h3_r9.h3 and keep cells with k1_growth_share > 0.013. Expect 473 of the 929 properties (238 in Pursue cells, 235 in Watchlist cells). Never join to growth_parcels on clip - that returns nothing.
+      Notes: Assign each property to its cell with portfolio_risk.h3 = growth_h3_r9.h3 and keep cells with k1_growth_share > 0.013. Expect 474 of the 931 properties (238 in Pursue cells, 236 in Watchlist cells). Never join to growth_parcels on clip - that returns nothing.
       SQL: SELECT p.clip, p.resolved_address, p.risk_score, c.h3, c.k1_growth_share, p.geom FROM `YOUR_PROJECT.YOUR_DATASET.portfolio_risk` p JOIN `YOUR_PROJECT.YOUR_DATASET.growth_h3_r9` c USING (h3) WHERE c.k1_growth_share > 0.013 ORDER BY c.k1_growth_share DESC
     - |
       Q: Classify the cells into Pursue, Watchlist, Hold and Reassess and colour the map by quadrant.
@@ -74,15 +74,15 @@ semantic_model:
       SQL: SELECT h3, CASE WHEN k1_crs_median IS NULL THEN 'Unclassified' WHEN k1_growth_share > 0.013 AND k1_crs_median >= 61 THEN 'Watchlist' WHEN k1_growth_share > 0.013 THEN 'Pursue' WHEN k1_crs_median >= 61 THEN 'Reassess' ELSE 'Hold' END AS quadrant, k1_growth_share, k1_crs_median, geom FROM `YOUR_PROJECT.YOUR_DATASET.growth_h3_r9`
     - |
       Q: For each quadrant, show the number of cells, my properties and growth parcels, the average growth parcels per cell, and the mix of growth stages.
-      Notes: Cell totals, property counts and stage counts each get their own CTE, joined on quadrant, so no cell is counted once per property. Sum the raw growth_parcels, never k1_growth_parcels. Expect Watchlist: 158 cells, 235 properties, 608 growth parcels (3.85 per cell; 262 early, 107 ongoing, 239 completed); Pursue: 62, 238, 276 (4.45); Hold: 158, 222, 9; Reassess: 77, 233, 18; Unclassified: 4 cells, no properties.
+      Notes: Cell totals, property counts and stage counts each get their own CTE, joined on quadrant, so no cell is counted once per property. Sum the raw growth_parcels, never k1_growth_parcels. Expect Watchlist: 158 cells, 236 properties, 608 growth parcels (3.85 per cell; 262 early, 107 ongoing, 239 completed); Pursue: 62, 238, 276 (4.45); Hold: 158, 222, 9; Reassess: 77, 234, 18; Unclassified: 4 cells, no properties.
       SQL: WITH cells AS (SELECT h3, total_parcels, growth_parcels, CASE WHEN k1_crs_median IS NULL THEN 'Unclassified' WHEN k1_growth_share > 0.013 AND k1_crs_median >= 61 THEN 'Watchlist' WHEN k1_growth_share > 0.013 THEN 'Pursue' WHEN k1_crs_median >= 61 THEN 'Reassess' ELSE 'Hold' END AS quadrant FROM `YOUR_PROJECT.YOUR_DATASET.growth_h3_r9`), props AS (SELECT c.quadrant, COUNT(DISTINCT p.clip) AS my_properties FROM `YOUR_PROJECT.YOUR_DATASET.portfolio_risk` p JOIN cells c USING (h3) GROUP BY 1), stages AS (SELECT c.quadrant, COUNTIF(g.growth_stage = 'Early Growth') AS early_growth, COUNTIF(g.growth_stage = 'Ongoing Growth') AS ongoing_growth, COUNTIF(g.growth_stage = 'Recently Completed') AS recently_completed FROM `YOUR_PROJECT.YOUR_DATASET.growth_parcels` g JOIN cells c USING (h3) GROUP BY 1), totals AS (SELECT quadrant, COUNT(*) AS cells, SUM(total_parcels) AS parcels, SUM(growth_parcels) AS growth_parcels FROM cells GROUP BY quadrant) SELECT t.quadrant, t.cells, IFNULL(p.my_properties, 0) AS my_properties, t.growth_parcels, ROUND(t.growth_parcels / t.cells, 2) AS growth_parcels_per_cell, IFNULL(s.early_growth, 0) AS early_growth, IFNULL(s.ongoing_growth, 0) AS ongoing_growth, IFNULL(s.recently_completed, 0) AS recently_completed FROM totals t LEFT JOIN props p USING (quadrant) LEFT JOIN stages s USING (quadrant) ORDER BY t.quadrant
     - |
       Q: Which Watchlist properties have a lower property-level climate risk than their cell?
-      Notes: Watchlist cells are high risk by definition, so these are Watchlist properties with 'Low property risk' (risk_score < 59, the portfolio median). Compare classes, never raw risk_score against k1_crs_median: they are different scores. Expect 47 of the 235 Watchlist properties; 1 Watchlist property is unscored.
+      Notes: Watchlist cells are high risk by definition, so these are Watchlist properties with 'Low property risk' (risk_score < 59, the portfolio median). Compare classes, never raw risk_score against k1_crs_median: they are different scores. Expect 47 of the 236 Watchlist properties; 1 Watchlist property is unscored.
       SQL: SELECT p.clip, p.resolved_address, p.risk_score, p.cfl_score, p.tcwi_score, c.k1_crs_median, p.geom FROM `YOUR_PROJECT.YOUR_DATASET.portfolio_risk` p JOIN `YOUR_PROJECT.YOUR_DATASET.growth_h3_r9` c USING (h3) WHERE c.k1_growth_share > 0.013 AND c.k1_crs_median >= 61 AND p.risk_score < 59 ORDER BY p.risk_score
     - |
       Q: What kinds of properties are in my portfolio?
-      Notes: Land use comes from parcel_essentials through clip; collapse parcel_essentials to one row per clip first. 928 of the 929 properties match. IrisLandUseCd 163 is SFR and 112 is CONDOMINIUM (see the parcel_essentials instructions).
+      Notes: Land use comes from parcel_essentials through clip; collapse parcel_essentials to one row per clip first. 930 of the 931 properties match. IrisLandUseCd 163 is SFR and 112 is CONDOMINIUM (see the parcel_essentials instructions).
       SQL: SELECT e.land_use, COUNT(*) AS my_properties FROM `YOUR_PROJECT.YOUR_DATASET.portfolio_risk` p JOIN (SELECT clip, ANY_VALUE(IrisLandUseCd) AS land_use FROM `YOUR_PROJECT.YOUR_DATASET.parcel_essentials` GROUP BY clip) e USING (clip) GROUP BY e.land_use ORDER BY my_properties DESC
     - |
       Q: Find the property with STRAP number 22-47-25-B4-0040I.0010
@@ -170,7 +170,7 @@ semantic_model:
       - holdings
       - assets
       - checkpoint 1
-      instructions: 'GRAIN: one row per property (clip) - 929 properties, the user''s portfolio after cleaning a
+      instructions: 'GRAIN: one row per property (clip) - 931 properties, the user''s portfolio after cleaning a
         messy address list with the Cotality MCP (address -> CLIP) and de-duplicating. Every property is an existing,
         non-growth property. 3 properties have no climate scores (risk_score NULL): report them as unscored, not
         as low risk.'
@@ -3229,7 +3229,7 @@ semantic_model:
     - h3
     to_columns:
     - h3
-    ai_context: Many properties to one cell. 928 of 929 properties match; the other lies in an excluded cell. A
+    ai_context: Many properties to one cell. 930 of 931 properties match; the other lies in an excluded cell. A
       property takes its cell's growth class, risk class and quadrant.
   - name: growth_parcel_to_cell
     from: growth_parcels
@@ -3248,7 +3248,7 @@ semantic_model:
     to_columns:
     - clip
     ai_context: One portfolio property to one or more parcel_essentials rows (one per parcel shape). Collapse parcel_essentials
-      to one row per clip before joining. 928 of 929 match.
+      to one row per clip before joining. 930 of 931 match.
   - name: parcel_essentials_to_growth_indicators
     from: parcel_essentials
     to: growth_parcels

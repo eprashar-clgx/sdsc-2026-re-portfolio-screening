@@ -109,7 +109,7 @@ has a **Try it in Claude** box at each step with the exact prompt, the call budg
 2. **CARTO connector:** follow [`mcp/carto_on_claude.md`](mcp/carto_on_claude.md). It signs in with your own
    CARTO account.
 3. **Calls are limited.** The Cotality key is shared by the whole room, so stick to the prompts in the
-   notebook (6 Cotality calls in total) and use the cached results for everything else.
+   notebook (8 Cotality calls in total) and use the cached results for everything else.
 
 ## Section 2: the map
 

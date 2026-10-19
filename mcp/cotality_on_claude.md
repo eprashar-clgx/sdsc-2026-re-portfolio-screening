@@ -33,11 +33,12 @@ Claude doesn't reach for the wrong tool. The default Sonnet model is fine and fa
 ## 3. Use it, within the budget
 
 The workshop key is shared by everyone in the room. Use the prompts in the notebook's **Try it in Claude**
-boxes: **6 calls in total** (5 address lookups and 1 climate risk lookup). Please don't ask Claude to work
+boxes: **8 calls in total** (7 address lookups and 1 climate risk lookup). Please don't ask Claude to work
 through the whole address list; the notebook's cached results cover that.
 
-- **Address lookups:** the prompts use `li-recognize_address`, which returns the standardized address and CLIP.
-  `clip-find_property_by_address` returns the same, plus owner names.
+- **Address lookups:** the prompts use `li-recognize_address`, Cotality's address recognition: the same tool
+  behind the workshop's cached results. It returns the standardized address, the CLIP and a match score; a low
+  score means "best guess, please review". (`clip-find_property_by_address` also returns owner names.)
 - **Climate risk:** `at-get_property_climate_risk` returns about 170 KB per property (12 perils, today and
   2030/2040/2050 under four emissions scenarios). Ask for one property per call, and ask Claude to report just
   the scores you need.
