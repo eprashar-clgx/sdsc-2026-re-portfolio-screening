@@ -1,0 +1,1367 @@
+# growth_indicators_v2_carto_sdsc_study.yaml
+# OSI v0.1.1 (Apache Ossie) semantic model for a CARTO AI Agent, using the CARTO spatial
+#   vendor extension (vendor_name: CARTO) instead of the COTALITY extension.
+# Adapted from growth_indicators_v2_carto.yaml (the CARTO model of the nationwide production
+#   growth view) for the SDSC growth study extract. Growth field definitions, value groups and
+#   units are carried over; the parcel_essentials fields (the same 44 as the original plus
+#   tract_geoid) and the parcel dataset instructions are copied verbatim from
+#   parcel_essentials_carto_sdsc_study.yaml. Every count, range, coverage figure and example
+#   was re-measured on the study tables.
+# growth_indicators source: clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_growth_study
+#   (918 rows, one per property; 31 columns; about 115 KB; no geometry).
+# parcel_essentials source: clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_essentials_study
+#   (21,592 rows: 15,325 parcels, 21,447 properties).
+# CARTO connection for both: clgx-gis-app-dev.
+# Verified against both tables on 2026-10-14; every example SQL was executed on that date.
+# What defines the growth table (verified 2026-10-14 on clgx-idap-bigquery-prd by
+#   full-row fingerprint comparison): every row of production release
+#   edr_ent_property_enriched_hist.edr_panoramiq_growth_indicators_v2_3171 (identical to
+#   _3172 in this area) whose puid is a CLIP that the production Parcel Essentials table places
+#   in Lee County, FL (fips = '12071') census tracts 050315, 050316, 050317, 050318, 050401,
+#   050502, 050601 and 050603 - the same 21,447 CLIPs as the parcel study table. puid was
+#   renamed clip
+#   (INT64 -> 10-digit STRING) and tract_geoid was added. No growth-attribute filter was
+#   applied: all 918 rows equal the release rows value for value. It is a snapshot - the
+#   view now reads release _3173 (built 2026-10-14 08:49 UTC, after this table), which has
+#   919 growth properties in the area (adds clip 1090007397, permit dated 20260930) and
+#   recent_new_con_bldg_permit_cnt 0-3 higher on most rows.
+version: "0.1.1"
+
+semantic_model:
+  - name: growth_indicators_v2_study
+    description: >
+      Cotality Growth Intelligence v2 growth indicators for the SDSC study area - eight 2020
+      Census tracts of southern Lee County, Florida (Bonita Springs and Estero) - paired with
+      Parcel Essentials for location. growth_indicators holds one row per property that shows
+      growth activity (918 of the area's 21,447 properties) - growth stage, growth type,
+      recent-activity flags and nearby-activity counts - keyed by clip, with the property's
+      census tract (tract_geoid). It has no geometry, address, owner or land use, so
+      parcel_essentials supplies the parcel polygon, address, owner, land use and lot size
+      through the relationship p.clip = g.clip.
+    ai_context:
+      synonyms:
+        - "growth intelligence"
+        - "growth indicators"
+        - "parcel growth"
+        - "property growth indicators"
+        - "development activity"
+        - "growth study"
+      instructions: >
+        TABLES: in SQL use the full names - growth_indicators is
+        `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_growth_study` (918 rows, one per
+        property) and parcel_essentials is
+        `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_essentials_study` (21,592 rows).
+
+        STUDY AREA: both tables cover only the same eight 2020 Census tracts of Lee County, FL
+        (fips 12071 - Bonita Springs and Estero): tract_geoid IN ('12071050315',
+        '12071050316', '12071050317', '12071050318', '12071050401', '12071050502',
+        '12071050601', '12071050603'). Questions about "the study area", "the map area" or
+        "all properties" need no geographic filter. A question about any other state,
+        county, city or tract has no rows here - say that the data covers only this study
+        area rather than reporting that nothing matched.
+
+        JOIN: growth_indicators has no geometry, address, owner, land use or lot size, so
+        maps and address, ZIP, city, owner, land-use, block-group and spatial questions need:
+          FROM `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_growth_study` g
+          JOIN `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_essentials_study` p ON p.clip = g.clip
+        Both clip columns are 10-digit STRINGs, so no CAST is needed. All 918 growth
+        properties match a parcel_essentials clip (verified 2026-10-14), so an INNER JOIN
+        drops none of them. The join returns 919 rows because one property (clip
+        5167985792) spans two parcel shapes, and 25 parcels carry three growth properties
+        each: count properties with COUNT(DISTINCT g.clip), count parcels with
+        COUNT(DISTINCT p.parcel_shape_id), and collapse to one row per clip before AVG of a
+        growth column.
+
+        PROPERTIES WITHOUT A GROWTH ROW: 20,529 of the 21,447 properties in
+        parcel_essentials (95.7%) have no growth_indicators row. Absence means the property
+        was in no growth stage in the production release the table was cut from (built
+        2026-10-11) - it is not missing data and not an unknown stage, so describe those
+        properties as "not in a growth stage". For shares of all properties take the
+        denominator from parcel_essentials, with a LEFT JOIN to growth_indicators. The table
+        is a fixed extract: a property that entered a growth stage after that release is not
+        in it.
+
+        GEOGRAPHY FILTERS: filter a census tract with g.tract_geoid, which needs no join (see
+        CENSUS TRACTS). ZIP, city, block-group and drawn-area filters use parcel_essentials
+        columns through the join, in the forms given in the parcel_essentials SUB-AREA
+        SELECTION instructions.
+
+        CENSUS TRACTS: g.tract_geoid is the property's 11-digit tract GEOID and agrees with
+        p.tract_geoid for all 918 properties (for clip 5167985792, whose two parcel shapes lie
+        in tracts 12071050401 and 12071050502, it holds 12071050502), so tract filters and
+        per-tract growth counts need no join: WHERE g.tract_geoid = '12071050318'. When a
+        question also needs parcel columns, filter and group on g.tract_geoid for one tract
+        per property; p.tract_geoid is parcel-grain and puts clip 5167985792 in both of its
+        tracts. Tract 12071050315 has no growth property. Block groups exist only in
+        parcel_essentials: CONCAT(p.tract_geoid, p.census_blockgroup_id).
+
+        WORKSHOP SCOPE: the workshop map's data source and both tables cover the same eight
+        tracts, so SQL needs no tract filter to match the map area. Filter only when the user
+        names a tract, block group, ZIP, city or drawn area.
+
+        COLUMNS READ: both tables are small (about 115 KB and 50 MB) and no filter narrows
+        what BigQuery reads, so cost is not a concern. Still select only the columns the
+        answer needs, and reference p.parcel_geometry_wkt only for maps, boundaries or
+        spatial tests.
+
+        MAPS: to show growth properties on the map, select p.parcel_geometry_wkt (the parcel
+        polygon) with the growth attributes; for points use
+        ST_GEOGPOINT(CAST(p.parcel_longitude AS FLOAT64), CAST(p.parcel_latitude AS FLOAT64)).
+        A parcel shared by several growth properties (25 parcels, three properties each)
+        appears once per property with the same polygon, and clip 5167985792 appears once
+        per parcel shape.
+      examples:
+        - |
+          Q: How many properties in each census tract are in a growth stage?
+          Notes: growth_indicators has one row per property and carries tract_geoid, so no join and no DISTINCT are needed. Seven tracts are returned, from 364 properties (12071050318) down to 2 (12071050316); tract 12071050315 has no growth property, so it is absent from the result rather than zero.
+          SQL: SELECT tract_geoid, COUNT(*) AS growth_properties FROM `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_growth_study` GROUP BY tract_geoid ORDER BY growth_properties DESC
+        - |
+          Q: Break down growth properties by stage and type in census tract 12071050318.
+          Notes: Filter on g.tract_geoid - no join needed. TRIM type_of_growth because the multi-family value has a trailing space. Expect 10 stage/type rows; Ongoing Growth Vacant Land (113) and Recently Completed Vacant Land (125) are the largest.
+          SQL: SELECT growth_stage, TRIM(type_of_growth) AS type_of_growth, COUNT(*) AS properties FROM `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_growth_study` WHERE tract_geoid = '12071050318' GROUP BY 1, 2 ORDER BY 1, 3 DESC
+        - |
+          Q: Show the Ongoing Growth parcels in census tract 12071050318 on the map.
+          Notes: The polygon comes from parcel_essentials; filter the tract on g.tract_geoid (one tract per property). Returns 120 rows - 120 properties on 120 parcels. A parcel shared by several growth properties would appear once per property with the same polygon.
+          SQL: SELECT p.parcel_shape_id, g.clip, g.growth_stage, TRIM(g.type_of_growth) AS type_of_growth, g.recent_new_con_bldg_permit_effective_date, p.situs_street_address, p.parcel_geometry_wkt FROM `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_growth_study` g JOIN `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_essentials_study` p ON p.clip = g.clip WHERE g.growth_stage = 'Ongoing Growth' AND g.tract_geoid = '12071050318'
+        - |
+          Q: Which builder/developer-owned properties had a new construction building permit in the last two years? Show the owner and address.
+          Notes: Both flags are on growth_indicators; the owner name and address come from parcel_essentials and are property (CLIP)-grain, so SELECT DISTINCT without the geometry gives one row per property. Returns 8 properties, all Ongoing Growth, 5 of them owned by PULTE HOME COMPANY LLC; permit dates run from 20241121 to 20260922.
+          SQL: SELECT DISTINCT g.clip, p.ownr1fullname, p.situs_street_address, p.situs_city, g.growth_stage, g.recent_new_con_bldg_permit_effective_date FROM `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_growth_study` g JOIN `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_essentials_study` p ON p.clip = g.clip WHERE g.builder_developer_ownership_indicator = 'Y' AND g.recent_new_con_bldg_permit_indicator = 'Y' ORDER BY g.recent_new_con_bldg_permit_effective_date DESC
+        - |
+          Q: What is the average number of nearby new-construction properties by growth type in ZIP 34135?
+          Notes: The ZIP comes from parcel_essentials (situs_zip_code mixes 5-digit ZIPs and ZIP+4, so match with LIKE). Nearby counts overlap between neighbours, so average them (never SUM) on one row per clip - the inner SELECT DISTINCT collapses the join. The count is populated only on properties with a recent new construction sale, so report how many properties carry it: 795 growth properties in the ZIP, 204 with a count (Vacant Land 141 of 443, average 162.7; Single Family Residential 32 of 218, average 189.9; Multi-Family 31 of 121, average 118.8); Commercial and Other have none.
+          SQL: SELECT TRIM(type_of_growth) AS type_of_growth, COUNT(*) AS properties, COUNT(nearby) AS properties_with_count, ROUND(AVG(nearby), 1) AS avg_nearby_new_construction, MAX(nearby) AS max_nearby_new_construction FROM (SELECT DISTINCT g.clip, g.type_of_growth, g.recent_nearby_new_construction_cnt AS nearby FROM `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_growth_study` g JOIN `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_essentials_study` p ON p.clip = g.clip WHERE p.situs_zip_code LIKE '34135%') t GROUP BY 1 ORDER BY 2 DESC
+        - |
+          Q: What share of properties in each census tract is in a growth stage?
+          Notes: growth_indicators holds only properties in a growth stage, so the denominator is COUNT(DISTINCT p.clip) from parcel_essentials with a LEFT JOIN to growth. Shares run from 0% (12071050315) to 9.8% (12071050401, 287 of 2,925). Grouping on p.tract_geoid counts each of the 2 properties that straddle two tracts in both of them (one is a growth property), so the columns sum to 21,449 and 919, and 12071050401 shows one more growth property than its g.tract_geoid count of 286.
+          SQL: SELECT p.tract_geoid, COUNT(DISTINCT p.clip) AS properties, COUNT(DISTINCT g.clip) AS growth_properties, ROUND(100 * COUNT(DISTINCT g.clip) / COUNT(DISTINCT p.clip), 1) AS pct_in_growth FROM `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_essentials_study` p LEFT JOIN `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_growth_study` g ON g.clip = p.clip GROUP BY 1 ORDER BY 1
+
+    datasets:
+      - name: growth_indicators
+        source: "clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_growth_study"
+        primary_key: [clip]
+        ai_context:
+          instructions: >
+            GRAIN: one row per property in a growth stage - 918 rows; clip (the CLIP, a 10-digit
+            STRING; puid in the production view) is unique and never NULL. Every row has a
+            growth_stage, so properties with no growth activity are not in this table - "share of
+            all properties" questions need parcel_essentials as the denominator. tract_geoid is
+            the only location column.
+
+            SNAPSHOT: the rows are the production growth release built 2026-10-11 for this area,
+            unchanged, and the table is not refreshed. "Recent" and "past two years" are relative
+            to that release, not to today.
+
+            GROWTH STAGE: growth_stage is 'Early Growth', 'Ongoing Growth' or 'Recently Completed'
+            (not 'Recently Completed Growth'). Verified 2026-10-14: every Ongoing Growth row has
+            recent_new_con_bldg_permit_indicator = 'Y' and no new-construction sale or recent year
+            built; Early Growth rows have none of those three, and each has at least one of
+            landuse_change_indicator, builder_developer_ownership_indicator or new_clip_indicator
+            = 'Y'; the new-construction sale and recent year built flags occur only on Recently
+            Completed rows, and every Recently Completed row has at least one of them.
+
+            TYPE OF GROWTH: compare with TRIM(type_of_growth) - the multi-family value is stored as
+            'Multi-Family ' with a trailing space.
+
+            FLAGS: the Y/N indicators use different encodings. recent_new_construction_sale_indicator
+            is 'Y' or NULL only; recent_yearbuilt_indicator is always 'Y' or 'N'; the others are 'Y',
+            'N' or NULL. NULL means not indicated, so for the negative case use
+            COALESCE(<flag>, 'N') = 'N' and say "not indicated" rather than "no".
+
+            RECENT WINDOW: "recent" means the past two years. Permit effective dates run from
+            20241016 to 20260922 in this table, and year_built is 2024 wherever it is populated.
+            Dates are YYYYMMDD integers:
+            PARSE_DATE('%Y%m%d', CAST(recent_new_con_bldg_permit_effective_date AS STRING)).
+
+            NEARBY COUNTS: the *_cnt columns count OTHER properties within two miles that carry the
+            flag. They were computed on the full production data, so they include neighbours that
+            are not in this table or the study area and cannot be reproduced by counting rows
+            here. They describe the neighbourhood, overlap between neighbours, and must never be
+            summed across properties - use AVG or MAX on one row per clip. NULL means not
+            computed, not zero; each field says where it is populated.
+
+            UNPOPULATED COLUMNS: anticipated_early_growth_score, anticipated_construction_score,
+            anticipated_construction_completed_score, pre_growth_stage_indicator,
+            ownership_classification, builder_developer_type_code, date_of_last_growth_stage_change and
+            parcel_link_status are NULL on every row of this table (verified 2026-10-14). Never
+            filter or group on them; if asked, say the field is not populated.
+
+            UNDOCUMENTED COLUMNS: addr_vacant_ratio, count_year_built and count_eff_year_built are not
+            in the product data dictionary; say their meaning is unconfirmed if you use them.
+
+        fields:
+          # --- Identification ---
+
+          - name: clip
+            label: "Identification"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: clip
+            description: "Property identifier: the Cotality CLIP as a 10-digit string. Named puid (INT64) in the production view; renamed and converted to STRING for this table, with no leading zeros lost (every value is 10 digits, as in parcel_essentials). Unique and never NULL - one row per property, 918 rows. Join to parcel_essentials with p.clip = g.clip (no CAST); all 918 match a parcel_essentials clip (verified 2026-10-14), and one of them (5167985792) spans two parcel shapes."
+            ai_context:
+              synonyms:
+                - "puid"
+                - "cotality property id"
+                - "growth property id"
+              instructions: "BigQuery type: STRING. Identifier column (primary key)."
+
+          - name: tract_geoid
+            label: "Identification"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: tract_geoid
+            description: "Full 11-digit 2020 Census tract GEOID of the property (2-digit state + 3-digit county + 6-digit tract), e.g. '12071050318'. Added to this study extract; not in the production growth view. Never NULL; one value per property. Seven of the eight study tracts occur - '12071050318' (364 rows), '12071050401' (286), '12071050601' (110), '12071050317' (66), '12071050603' (61), '12071050502' (29), '12071050316' (2); '12071050315' has no growth property. Agrees with parcel_essentials tract_geoid for all 918 properties; clip 5167985792, whose two parcel shapes lie in tracts 12071050401 and 12071050502, holds '12071050502'. Use it for tract filters and per-tract counts without the join."
+            ai_context:
+              synonyms:
+                - "growth property tract"
+                - "growth tract"
+              instructions: "BigQuery type: STRING. Common filter column."
+
+          - name: property_linkage_id
+            label: "Identification"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: propertylinkageid
+            description: "Internal property linkage key. Unique in this table (918 values, never NULL), but it is not a CLIP and matches no parcel_essentials key - never use it for joins."
+            ai_context:
+              instructions: "BigQuery type: INT64."
+
+          # --- Growth Indicators ---
+
+          - name: recent_new_construction_sale_indicator
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: recent_new_construction_sale_indicator
+            description: "Most recent sale was within the past two years and identified as a new construction sale. Only 'Y' or NULL occur - there is no 'N' value, so use IS NULL (stated as 'not indicated') for the negative case."
+            ai_context:
+              synonyms:
+                - "new construction sale"
+              instructions: "BigQuery type: STRING. Flag column. Values (2026-10-14): yes: 'Y' (204 rows); not indicated: NULL (714 rows)."
+
+          - name: recent_nearby_new_construction_count
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: recent_nearby_new_construction_cnt
+            description: "Count of other properties within two miles with the New Construction Property Indicator set to Y."
+            ai_context:
+              synonyms:
+                - "nearby new construction"
+              instructions: "BigQuery type: INT64. Numeric measure, unit: count. Neighbourhood count of OTHER properties within two miles; never SUM it across properties (the radii overlap) - use AVG or MAX on one row per clip. NULL means not computed, not zero. Populated on 204 rows - exactly the rows with recent_new_construction_sale_indicator = 'Y' - from 55 to 207 (median 165); computed on the full production data, so it counts neighbours outside this table."
+
+          - name: land_use_change_indicator
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: landuse_change_indicator
+            description: "Land use for the property has changed in the past two years."
+            ai_context:
+              synonyms:
+                - "land use change"
+              instructions: "BigQuery type: STRING. Flag column. Values (2026-10-14): yes: 'Y' (131 rows); no: 'N' (161 rows); not indicated: NULL (626 rows)."
+
+          - name: land_use_change_indicator_count
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: landuse_change_cnt
+            description: "Count of other properties within two miles with the Land Use Change Indicator set to Y."
+            ai_context:
+              synonyms:
+                - "nearby land use change"
+              instructions: "BigQuery type: INT64. Numeric measure, unit: count. Neighbourhood count of OTHER properties within two miles; never SUM it across properties (the radii overlap) - use AVG or MAX on one row per clip. NULL means not computed, not zero. Populated on 292 rows - exactly where land_use_change_indicator is 'Y' or 'N' - from 516 to 1,431 (median 1,140); computed on the full production data, so it counts neighbours outside this table (only 131 rows here have the flag)."
+
+          - name: previous_land_use_code
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: previous_land_use_code
+            description: "Previous Cotality land use code (the same 3-digit code set as parcel_essentials land_use_code / IrisLandUseCd). Populated whenever land_use_change_indicator is 'Y' or 'N' (also on the 'N' rows) and NULL otherwise; compare it with p.IrisLandUseCd to show the old and current land use."
+            ai_context:
+              synonyms:
+                - "previous land use"
+                - "prior land use"
+              instructions: "BigQuery type: STRING. Code column; 13 distinct codes in this table, populated on 292 rows. Counts: '465' (111 rows), '100' (105), '460' (20), '415' (15), '420' (12), '435' (4), '132', '137', '163' and '200' (5 each), '400' (3), '515' and '601' (1 each). Bands as in parcel_essentials land_use_code: 100-199 residential, 200-299 commercial, 300-399 industrial, 400-499 vacant land."
+
+          - name: builder_developer_ownership_indicator
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: builder_developer_ownership_indicator
+            description: "Set to Y if the owner is identified as a builder or a developer."
+            ai_context:
+              synonyms:
+                - "builder owned"
+                - "developer owned"
+              instructions: "BigQuery type: STRING. Flag column. Values (2026-10-14): yes: 'Y' (61 rows); no: 'N' (2 rows); not indicated: NULL (855 rows)."
+
+          - name: builder_developer_type_code
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: builder_developer_type_code
+            description: "Categorizes builder/developer type (multi-family, single family, commercial). Reserved for future use."
+            ai_context:
+              instructions: "BigQuery type: STRING. NULL on every row of this table (verified 2026-10-14) - do not filter or group on it."
+
+          - name: new_clip_indicator
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: new_clip_indicator
+            description: "Indicates that the property received a CLIP in the past two years."
+            ai_context:
+              synonyms:
+                - "new clip"
+                - "new parcel"
+              instructions: "BigQuery type: STRING. Flag column. Values (2026-10-14): yes: 'Y' (386 rows); no: 'N' (138 rows); not indicated: NULL (394 rows)."
+
+          - name: new_clip_count
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: new_clip_cnt
+            description: "Count of other properties within two miles with the New CLIP Indicator set to Y."
+            ai_context:
+              synonyms:
+                - "nearby new clips"
+              instructions: "BigQuery type: INT64. Numeric measure, unit: count. Neighbourhood count of OTHER properties within two miles; never SUM it across properties (the radii overlap) - use AVG or MAX on one row per clip. NULL means not computed, not zero. Populated on 524 rows - exactly where new_clip_indicator is 'Y' or 'N' - from 13 to 535 (median 453); computed on the full production data, so it counts neighbours outside this table."
+
+          - name: recent_year_built_indicator
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: recent_yearbuilt_indicator
+            description: "Indicates that the Year Built is less than three years ago. Always 'Y' or 'N', never NULL."
+            ai_context:
+              synonyms:
+                - "recently built"
+                - "new build"
+              instructions: "BigQuery type: STRING. Flag column. Values (2026-10-14): yes: 'Y' (244 rows); no: 'N' (674 rows)."
+
+          - name: recent_year_built_count
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: recent_yearbuilt_cnt
+            description: "Count of other properties within two miles with the Recent Year Built Indicator set to Y."
+            ai_context:
+              synonyms:
+                - "nearby recently built"
+              instructions: "BigQuery type: INT64. Numeric measure, unit: count. Neighbourhood count of OTHER properties within two miles; never SUM it across properties (the radii overlap) - use AVG or MAX on one row per clip. NULL means not computed, not zero. Populated on 244 rows - exactly the rows with recent_year_built_indicator = 'Y' (NULL on the 'N' rows) - from 34 to 235 (median 227); computed on the full production data, so it counts neighbours outside this table."
+
+          - name: recent_new_construction_building_permit_indicator
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: recent_new_con_bldg_permit_indicator
+            description: "A new construction building permit was issued for the property in the past two years."
+            ai_context:
+              synonyms:
+                - "building permit"
+                - "new construction permit"
+              instructions: "BigQuery type: STRING. Flag column. Values (2026-10-14): yes: 'Y' (366 rows); no: 'N' (71 rows); not indicated: NULL (481 rows)."
+
+          - name: new_construction_building_permit_effective_date
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: recent_new_con_bldg_permit_effective_date
+            description: "Effective date of the new construction building permit as a YYYYMMDD integer. Populated whenever the permit indicator is 'Y' or 'N' (437 rows - the 'N' rows carry a date too) and NULL otherwise; 20241016-20260922 in this table (2024: 106 rows, 2025: 269, 2026: 62). Convert with PARSE_DATE('%Y%m%d', CAST(recent_new_con_bldg_permit_effective_date AS STRING))."
+            ai_context:
+              synonyms:
+                - "permit date"
+              instructions: "BigQuery type: INT64. Date stored as an integer."
+
+          - name: recent_new_construction_building_permit_count
+            label: "Growth Indicators"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: recent_new_con_bldg_permit_cnt
+            description: "Count of other properties within two miles with the Recent New Construction Building Permit Indicator set to Y."
+            ai_context:
+              synonyms:
+                - "nearby permits"
+              instructions: "BigQuery type: INT64. Numeric measure, unit: count. Neighbourhood count of OTHER properties within two miles; never SUM it across properties (the radii overlap) - use AVG or MAX on one row per clip. NULL means not computed, not zero. Populated on 437 rows - exactly where the permit indicator is 'Y' or 'N' - from 115 to 460 (median 356); computed on the full production data, so it counts neighbours outside this table. Values are from the release this table was cut from; the live production view has since raised them by 0-3 on most rows."
+
+          # --- Stage and Type of Growth ---
+
+          - name: type_of_growth
+            label: "Stage and Type of Growth"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: type_of_growth
+            description: "Categorizes current land use into broader growth types. Never NULL. The multi-family value carries a trailing space ('Multi-Family '), so compare with TRIM(type_of_growth) = 'Multi-Family' and select TRIM(type_of_growth) for display."
+            ai_context:
+              synonyms:
+                - "growth type"
+                - "development type"
+              instructions: "BigQuery type: STRING. Values (2026-10-14): 'Vacant Land' (471 rows), 'Single Family Residential' (247), 'Multi-Family ' with a trailing space (122), 'Commercial' (66), 'Other' (12). The production values 'Agricultural' and 'Transient Residential' do not occur in this table."
+
+          - name: stage_of_growth
+            label: "Stage and Type of Growth"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: growth_stage
+            description: "Lifecycle stage of the property. Never NULL. Early Growth = evidence of land use change, builder/developer ownership or a new CLIP; Ongoing Growth = a recent new construction building permit; Recently Completed = a recent new construction sale or a recent year built. The value is 'Recently Completed', not 'Recently Completed Growth'."
+            ai_context:
+              synonyms:
+                - "growth stage"
+                - "development stage"
+              instructions: "BigQuery type: STRING. Values (2026-10-14): 'Recently Completed' (393 rows), 'Early Growth' (307), 'Ongoing Growth' (218)."
+
+          - name: date_of_last_growth_stage_change
+            label: "Stage and Type of Growth"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: date_of_last_growth_stage_change
+            description: "Date when the current growth stage first occurred, as a YYYYMMDD number."
+            ai_context:
+              instructions: "BigQuery type: NUMERIC. NULL on every row of this table (verified 2026-10-14) - do not filter or group on it."
+
+          - name: ownership_classification
+            label: "Stage and Type of Growth"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: ownership_classification
+            description: "Classifies property ownership into categories (e.g. Private, Builder, Developer, Investor, Government)."
+            ai_context:
+              instructions: "BigQuery type: STRING. NULL on every row of this table (verified 2026-10-14) - do not filter or group on it."
+
+          # --- Growth Stage Confidence Model ---
+
+          - name: anticipated_early_growth_score
+            label: "Growth Stage Confidence Model"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: anticipated_early_growth_score
+            description: "Predicts if and when a parcel will begin its Early Growth stage from a non-growth state. Scores 1-5, 5 highest."
+            ai_context:
+              instructions: "BigQuery type: STRING. NULL on every row of this table (verified 2026-10-14) - do not filter or group on it."
+
+          - name: anticipated_construction_score
+            label: "Growth Stage Confidence Model"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: anticipated_construction_score
+            description: "Predicts if and when a parcel will begin construction (Ongoing Growth) from Early Growth. Scores 1-5, 5 highest."
+            ai_context:
+              instructions: "BigQuery type: STRING. NULL on every row of this table (verified 2026-10-14) - do not filter or group on it."
+
+          - name: anticipated_construction_completed_score
+            label: "Growth Stage Confidence Model"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: anticipated_construction_completed_score
+            description: "Predicts if and when a parcel will enter its Completed Property stage from Ongoing Growth. Scores 1-5, 5 highest."
+            ai_context:
+              instructions: "BigQuery type: STRING. NULL on every row of this table (verified 2026-10-14) - do not filter or group on it."
+
+          - name: pre_growth_stage_indicator
+            label: "Growth Stage Confidence Model"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: pre_growth_stage_indicator
+            description: "1 if anticipated_early_growth_score has a value (pre-growth potential), else 0."
+            ai_context:
+              instructions: "BigQuery type: STRING. NULL on every row of this table (verified 2026-10-14) - do not filter or group on it."
+
+          # --- Property Context ---
+
+          - name: address_count
+            label: "Property Context"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: mailing_address_count
+            description: "Count of unique addresses associated with the property. 1-353 (median 1); NULL on 64 rows."
+            ai_context:
+              synonyms:
+                - "number of addresses"
+              instructions: "BigQuery type: INT64. Numeric measure, unit: count."
+
+          - name: year_built
+            label: "Property Context"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: year_built
+            description: "Year of construction. Populated exactly when recent_year_built_indicator = 'Y' (244 rows, every one 2024) and NULL otherwise - it is not a general year-built field, and the parcel_essentials fields in this model have none."
+            ai_context:
+              synonyms:
+                - "year built"
+                - "construction year"
+              instructions: "BigQuery type: INT64. Unit: year. Do not SUM."
+
+          - name: address_vacant_ratio
+            label: "Property Context"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: addr_vacant_ratio
+            description: "Not in the product data dictionary. 0 on every populated row of this table (560 rows) and NULL on the other 358; the name suggests the share of the property's addresses flagged vacant. Say it is unconfirmed if you use it."
+            ai_context:
+              instructions: "BigQuery type: FLOAT64. Do not SUM."
+
+          - name: count_year_built
+            label: "Property Context"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: count_year_built
+            description: "Not in the product data dictionary. A count from 0 to 2 (0 on 674 rows), never NULL; it is above 0 on exactly the 244 rows with recent_year_built_indicator = 'Y'. Say it is unconfirmed if you use it."
+            ai_context:
+              instructions: "BigQuery type: INT64."
+
+          - name: count_effective_year_built
+            label: "Property Context"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: count_eff_year_built
+            description: "Not in the product data dictionary. A count from 0 to 2 (0 on 793 rows), never NULL; every row above 0 has recent_year_built_indicator = 'Y'. Say it is unconfirmed if you use it."
+            ai_context:
+              instructions: "BigQuery type: INT64."
+
+          - name: parcel_link_status
+            label: "Property Context"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: parcel_link_status
+            description: "Parcel link status."
+            ai_context:
+              instructions: "BigQuery type: STRING. NULL on every row of this table (verified 2026-10-14) - do not filter or group on it."
+
+      - name: parcel_essentials
+        source: "clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_essentials_study"
+        primary_key: [parcel_shape_id, clip]
+        ai_context:
+          instructions: >
+            GRAIN: one row per (parcel_shape_id, clip) pair - verified unique.
+            parcel_shape_id identifies a parcel polygon and clip identifies a property;
+            neither is ever NULL in this table (it holds no parcel-only rows). The
+            relationship is many-to-many at the margins: 1,003 of 15,325 parcels (6.5%)
+            carry more than one clip (condo buildings - up to 64 units on one polygon)
+            and 50 of 21,447 clips (0.2%) span more than one parcel (up to 34). COUNT(*)
+            counts pairs, not properties or parcels: for "how many properties" use
+            COUNT(DISTINCT clip), for "how many parcels" use COUNT(DISTINCT
+            parcel_shape_id), and say which one you used.
+
+            GEOMETRY: parcel_geometry_wkt is a native GEOGRAPHY column (EPSG:4326)
+            despite its name; every value is a single POLYGON. Pass it straight to
+            ST_AREA, ST_CONTAINS, ST_INTERSECTS and the other ST_ functions, and never
+            wrap it in ST_GEOGFROMTEXT (that fails with "No matching signature"). Use
+            ST_ASTEXT(parcel_geometry_wkt) only when WKT text output is explicitly
+            wanted. parcel_geometry_geojson holds GeoJSON text of the same polygon
+            (verified equal on every parcel) - select it only when GeoJSON text output
+            is requested and never use it for spatial work. geoid is a binary hash,
+            not a Census GEOID - use tract_geoid for census geography.
+
+            TABLE AND COLUMNS READ: in SQL, reference the table by its full name,
+            `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_essentials_study`. It is
+            small (about 50 MB) and is neither clustered nor partitioned, so no filter
+            narrows what BigQuery reads - every query reads each referenced column in
+            full. Cost is not a concern at this size, but still select only the columns
+            the answer needs, and reference parcel_geometry_wkt (which, with
+            parcel_geometry_geojson, holds most of the table's bytes) only for
+            boundary, area, map or spatial questions.
+
+            SUB-AREA SELECTION: select within the study area by
+              census tract:  tract_geoid = '12071050318'
+              block group:   CONCAT(tract_geoid, census_blockgroup_id) = '120710503181'
+              ZIP:           situs_zip_code LIKE '34135%'   (see ADDRESS FIELDS)
+              city:          situs_city = 'ESTERO'          (see ADDRESS FIELDS)
+              drawn area:    a spatial predicate            (see SPATIAL PREDICATES)
+            fips, statecode, countycode and CntyCd each hold one value and never narrow
+            anything. clip and parcel_shape_id identify rows across the whole table, so
+            an id lookup needs no location filter. APNs are unique within this table
+            (one per property) - see original_apn for the Lee County STRAP and Folio ID
+            forms.
+
+            CENSUS GEOGRAPHY: tract_geoid is the full 11-digit tract GEOID;
+            census_tract_id is only the 6-digit tract code (tract_geoid = fips ||
+            census_tract_id on every row). census_blockgroup_id is only the 1-digit
+            block group number within the tract ('1'-'4'), NOT a GEOID - group block
+            groups by CONCAT(tract_geoid, census_blockgroup_id) (23 block groups here),
+            never by census_blockgroup_id alone, which merges block groups across
+            tracts. All three are parcel-shape-grain (they differ among the shapes of 2
+            multi-parcel properties). SitusCensID comes from the property record in a
+            different census vintage: its tract prefix disagrees with census_tract_id
+            on 4.6% of rows and shows 26 distinct tracts, so never use it for tract or
+            block group grouping. There is no tract polygon column - for a tract map,
+            join tract boundaries on tract_geoid, or aggregate one geometry per
+            parcel_shape_id with ST_UNION_AGG as an approximate footprint.
+
+            SPATIAL PREDICATES: put a spatial predicate against a constant geography (a
+            point, a WKT literal or a drawn polygon) - ST_CONTAINS, ST_INTERSECTS,
+            ST_COVERS, ST_WITHIN, ST_DWITHIN, or ST_DISTANCE(...) <= r - directly in
+            WHERE, and collapse to the parcel when one row per parcel is wanted:
+              SELECT parcel_shape_id, ARRAY_AGG(clip) AS clips
+              FROM `clgx-gis-app-dev-06e3.work_eprashar.carto_sdsc_essentials_study`
+              WHERE ST_CONTAINS(parcel_geometry_wkt, ST_GEOGPOINT(-81.803494, 26.365097))
+              GROUP BY parcel_shape_id
+            For an approximate radius search on the centroid point, use
+            ST_DWITHIN(ST_GEOGPOINT(CAST(parcel_longitude AS FLOAT64),
+            CAST(parcel_latitude AS FLOAT64)), <point>, <meters>), which reads the two
+            coordinate columns instead of the polygon column.
+
+            LOCATION PRECEDENCE: boundary and map questions use parcel_geometry_wkt.
+            When only a representative point is needed, use parcel_longitude /
+            parcel_latitude (NUMERIC; verified inside the polygon for all 15,325
+            parcels, median 0.45 m from ST_CENTROID). location_longitude /
+            location_latitude is an alternate, property (CLIP)-grain point that falls
+            outside the polygon for 148 parcels (1.0%) and differs among the clips of
+            12 shared parcels. Cast the NUMERIC coordinates to FLOAT64 for
+            ST_GEOGPOINT, longitude first. The geohash columns are informational only -
+            never use them in spatial predicates.
+
+            ADDRESS FIELDS: the raw parcel-address columns (parcel_address, city,
+            state, zipcode) hold the address as received from the source - note their
+            generic names; the situs_* columns are the standardized version of the same
+            address. Use situs_* for address search and display: the raw street
+            differs from the situs street on 39% of rows, and situs_city is ESTERO on
+            5,126 rows while the raw city is ESTERO on only 945. situs_city values are
+            BONITA SPRINGS, ESTERO and NAPLES (Lee County addresses in Naples ZIP
+            34110), plus a stray 'BONITA SPGS' (1 row) and 'NORTH FORT MYERS' (2 rows),
+            so match Bonita Springs with situs_city LIKE 'BONITA SP%'. zipcode is
+            always 5 digits; situs_zip_code and StdZipCd mix 5-digit ZIPs and 9-digit
+            ZIP+4 values (91% of situs ZIPs are ZIP+4), so match a ZIP with LIKE
+            '34135%' or SUBSTR(situs_zip_code, 1, 5). Situs ZIPs: 34135 (17,441 rows),
+            34134 (2,765), 33928 (941), 34110 (403), and a few stray rows in other
+            ZIPs. The owner mailing address lives in StdAddr1 / StdCityName / StdStCd /
+            StdZipCd and is not necessarily the property location - the mailing state
+            is not FL for 6,101 properties (seasonal and absentee owners). Owner names
+            are not normalized (e.g. 'BROOKS OF BONITA SPRINGS CDD' and 'BROOKS OF
+            BONITA SPRINGS II CD' are separate values).
+
+            AGGREGATION AND DEDUPLICATION: because the grain is many-to-many,
+            attribute values repeat across rows. Property (CLIP)-grain attributes -
+            all valuation and tax fields, building/structure characteristics, owner
+            fields, the assessor lot fields (LandDimAcresTotal, LandDimSqFtTotal,
+            LandDimFrontNbr, LandDimDepthNbr), the location_* point, PLSS fields,
+            address_count and crs - repeat once per parcel shape the property touches.
+            Parcel-shape-grain attributes - parcel_geometry_wkt (and the polygon area
+            derived from it), the parcel centroid point, the source/update dates,
+            flood_zone_1, tract_geoid, census_tract_id and census_blockgroup_id -
+            repeat once per property on the shape. Every column tested was constant
+            within its key, so collapse to the right key BEFORE SUM or AVG with GROUP
+            BY plus ANY_VALUE, not SELECT DISTINCT:
+              SELECT clip, ANY_VALUE(UnvTotalValAmt) AS v ... GROUP BY clip
+              SELECT parcel_shape_id, ANY_VALUE(parcel_geometry_wkt) AS geom ... GROUP BY parcel_shape_id
+            SELECT DISTINCT cannot be used on GEOGRAPHY at all, and SELECT DISTINCT
+            key, <column> double-counts whenever the column differs within a key.
+            Summing over raw rows double-counts: the raw-row sum of polygon area is
+            11,583 acres against 10,177 acres once collapsed per parcel.
+            COUNT(DISTINCT clip) and COUNT(DISTINCT parcel_shape_id) are already safe.
+            When grouping a property measure by tract, take one tract per clip with
+            ANY_VALUE(tract_geoid) - 2 properties straddle two tracts. Never alias an
+            aggregate with a source column's own name (ANY_VALUE(parcel_geometry_wkt)
+            AS parcel_geometry_wkt): BigQuery then resolves that column inside HAVING
+            to the alias and fails with "Aggregations of aggregations are not allowed".
+
+            LOT SIZE: the lot size of record is the parcel polygon area, computed once
+            per parcel_shape_id as
+              ST_AREA(ANY_VALUE(parcel_geometry_wkt)) / 4046.8564224 AS parcel_acres
+            (square meters: ST_AREA(...); square feet: ST_AREA(...) / 0.09290304).
+            Use it for every lot-size filter, ranking and total, and filter on the
+            same expression in HAVING. Parcels here run from a median of 0.22 acres up
+            to 180.6 acres (a golf course), 10,177 acres in total. LandDimAcresTotal /
+            LandDimSqFtTotal are assessor values from the property record, not the
+            polygon. For a property on exactly one parcel they agree closely with the
+            polygon (median ratio 1.00, within 10% for 98.8% of such properties). They
+            diverge where the grain does: a property spanning several parcels carries
+            its whole-holding total on every parcel row, and condo units on a shared
+            parcel each carry the full parcel acreage (99% of unit rows on shared
+            parcels), so summing them over units multiplies the parcel's area. No cap
+            or sentinel values occur in this table (maximum 255.8 acres). Use the
+            assessor figures only when the user asks for the assessor/county figure,
+            and say in the answer that it is the assessor's figure.
+
+            LAND USE FILTER IS MANDATORY FOR HOMES: this table contains every property
+            type - commercial, industrial, vacant land, golf courses and government
+            land included - so any question about homes, houses, residences, or places
+            to live must carry an IrisLandUseCd filter. IrisLandUseCd is always a
+            3-digit string and is never NULL here (74 distinct codes). The residential
+            band '100'-'199' is broader than "homes": here it also holds a nursing home
+            (157), an orphanage (156), a hotel (127), a motel (142), transient lodging
+            (164) and whole apartment buildings (131, 132, 133, 134). Unfiltered, the
+            most valuable "home" in the band is an $86.7M retirement-village record
+            (157), followed by three apartment complexes (131). For homes / houses use
+            IrisLandUseCd IN ('100', '102', '109', '111', '112', '115', '116', '117',
+            '137', '138', '148', '151', '160', '163', '165'); the codes present here
+            are 163 SFR (8,351 properties), 112 CONDOMINIUM (7,644), 137 MOBILE HOME
+            (1,320), 100 RESIDENTIAL NEC (346), 111 COOPERATIVE (178), 138
+            MANUFACTURED HOME (13) and 115 DUPLEX (1). Single-family is '163' (SFR) -
+            '106' is APARTMENT, not single-family. Use the whole BETWEEN '100' AND
+            '199' band only for "residential property" questions in the broad sense.
+
+            GROUPING: the natural sub-area unit is the census tract (tract_geoid),
+            then the block group (CONCAT(tract_geoid, census_blockgroup_id)); situs
+            ZIP and situs_city also work. A GEOGRAPHY value cannot appear in GROUP BY
+            or SELECT DISTINCT in BigQuery - group on parcel_shape_id and carry
+            ANY_VALUE(parcel_geometry_wkt) instead.
+
+        fields:
+          # --- Identification ---
+
+          - name: parcel_shape_id
+            label: "Identification"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: parcel_shape_id
+            description: "Unique and persistent identification number assigned to each parcel polygon. Never NULL. Part of this table's composite grain: (parcel_shape_id, clip) is verified unique; 1,003 of the 15,325 parcels (6.5%) carry more than one clip (condo buildings, up to 64 units on one polygon). Count parcels with COUNT(DISTINCT parcel_shape_id)."
+            ai_context:
+              synonyms:
+                - "parcel id"
+                - "parcel shape identifier"
+                - "polygon id"
+              instructions: "BigQuery type: STRING. Identifier column."
+
+          - name: clip
+            label: "Identification"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: clip
+            description: "Unique identification number assigned to each property. Part of this table's composite grain: (parcel_shape_id, clip) is verified unique; 50 of the 21,447 clips (0.2%) span more than one parcel (up to 34). Never NULL in this table - the study extract holds no parcel-only rows. Count properties with COUNT(DISTINCT clip)."
+            ai_context:
+              synonyms:
+                - "property id"
+                - "clip id"
+                - "property identifier"
+              instructions: "BigQuery type: STRING. Identifier column."
+
+          # --- Parcel Information ---
+
+          - name: state_code
+            label: "Parcel Information"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: statecode
+            description: "Two-digit state FIPS code from the parcel record. '12' (Florida) on every row of this study table, so it never narrows a query here; a question about any other state has no rows. Business field name in the product spec: STATE CODE."
+            ai_context:
+              synonyms:
+                - "state"
+                - "state fips"
+              instructions: "BigQuery type: STRING. Single value in this table: '12'."
+
+          - name: county_code
+            label: "Parcel Information"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: countycode
+            description: "Three-digit county code from the parcel record (statecode + countycode = the parcel's county). '071' (Lee County, FL) on every row of this study table and consistent with fips, so it never narrows a query here. Business field name in the product spec: COUNTY CODE."
+            ai_context:
+              synonyms:
+                - "county"
+                - "county fips"
+              instructions: "BigQuery type: STRING. Single value in this table: '071'."
+
+          - name: original_apn
+            label: "Parcel Information"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: original_apn
+            description: "Original Assessor's Parcel Number (APN) in the format provided on the assessor tax roll. In Lee County this is the STRAP number stored without dashes or dots ('224725B40040I0010'); users usually quote the dashed form, which is in PclIdIrisFrmtd ('22-47-25-B4-0040I.0010'), or the 8-digit Folio ID, which is in alternate_apn and AcctNbr ('10282351'). Never NULL, identical to apn_parcel_number_unformatted on every row, and unique per property within this table. Match a user-supplied APN against original_apn, PclIdIrisFrmtd and alternate_apn together."
+            ai_context:
+              synonyms:
+                - "apn"
+                - "original parcel number"
+                - "raw apn"
+              instructions: "BigQuery type: STRING."
+
+          - name: alternate_apn
+            label: "Parcel Information"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: alternate_apn
+            description: "An alternate ID provided by some counties that can be used to identify a property. In Lee County this is the 8-digit Property Appraiser Folio ID (e.g. '10282351'); never NULL here, identical to AcctNbr on every row, and unique per property within this table."
+            ai_context:
+              synonyms:
+                - "alternate parcel number"
+                - "secondary apn"
+              instructions: "BigQuery type: STRING."
+
+          - name: apn_parcel_number_unformatted
+            label: "Parcel Information"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: apn_parcel_number_unformatted
+            description: "Assessor's Parcel Number in an unformatted form. Most often used by the county and others as a unique key within that county. In this table it is identical to original_apn on every row (the undashed Lee County STRAP number)."
+            ai_context:
+              synonyms:
+                - "unformatted parcel number"
+                - "assessor parcel number"
+              instructions: "BigQuery type: STRING."
+
+          # --- Owner ---
+
+          - name: owner_1_full_name
+            label: "Owner"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: ownr1fullname
+            description: "Full name of the property owner - 1st occurrence. May be an individual or an entity name. Business field name in the product spec: OWNER 1 FULL NAME."
+            ai_context:
+              synonyms:
+                - "owner name"
+                - "property owner"
+                - "owner"
+              instructions: "BigQuery type: STRING. Common filter column."
+
+          # --- Parcel Address ---
+
+          - name: situs_street_address
+            label: "Parcel Address"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: situs_street_address
+            description: "Standardized property (situs) street address."
+            ai_context:
+              synonyms:
+                - "property address"
+                - "situs address"
+                - "standardized address"
+              instructions: "BigQuery type: STRING. Common filter column."
+
+          - name: situs_city
+            label: "Parcel Address"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: situs_city
+            description: "The standardized city associated with the property address. Values in this study table: BONITA SPRINGS (16,060 rows), ESTERO (5,126), NAPLES (403 - Lee County addresses in Naples ZIP 34110), plus 'BONITA SPGS' (1) and 'NORTH FORT MYERS' (2). Match Bonita Springs with LIKE 'BONITA SP%'."
+            ai_context:
+              synonyms:
+                - "property city"
+                - "situs city"
+              instructions: "BigQuery type: STRING. Common filter column."
+
+          - name: situs_state
+            label: "Parcel Address"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: situs_state
+            description: "The two-letter USPS postal abbreviation for the state/protectorate/commonwealth associated with the property address (e.g., CA, VI)."
+            ai_context:
+              synonyms:
+                - "property state"
+                - "situs state"
+              instructions: "BigQuery type: STRING. Common filter column."
+
+          - name: situs_zip_code
+            label: "Parcel Address"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: situs_zip_code
+            description: "USPS zip code for the property address, assigned by various source files and proprietary/non-proprietary processes. May be the 5-digit zip or the 9-digit Zip+4 (91% are Zip+4 here), so match on the first five digits (LIKE '34135%'). Main ZIPs in this study table: 34135 (17,441 rows), 34134 (2,765), 33928 (941), 34110 (403)."
+            ai_context:
+              synonyms:
+                - "property zip"
+                - "situs zip"
+                - "zip+4"
+              instructions: "BigQuery type: STRING. Common filter column."
+
+          # --- Owner Mailing ---
+
+          - name: mailing_street_address
+            label: "Owner Mailing"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: StdAddr1
+            description: "Full owner mailing address, not including city/state/zip (e.g., 123 N Main St). May also contain an unparsed foreign mailing address. Business field name in the product spec: MAILING STREET ADDRESS."
+            ai_context:
+              synonyms:
+                - "mailing address"
+                - "owner mailing address"
+              instructions: "BigQuery type: STRING."
+
+          - name: mailing_city
+            label: "Owner Mailing"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: StdCityName
+            description: "The city associated with the owner's mailing address. Business field name in the product spec: MAILING CITY."
+            ai_context:
+              instructions: "BigQuery type: STRING."
+
+          - name: mailing_state
+            label: "Owner Mailing"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: StdStCd
+            description: "The two-letter USPS postal abbreviation for the state/protectorate/commonwealth associated with the mailing address (e.g., CA, VI). Business field name in the product spec: MAILING STATE."
+            ai_context:
+              instructions: "BigQuery type: STRING."
+
+          - name: mailing_zip_code
+            label: "Owner Mailing"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: StdZipCd
+            description: "USPS zip code for the mailing address. May be the 5-digit zip or the 9-digit Zip+4 (e.g., 00501 or 954630042). Business field name in the product spec: MAILING ZIP CODE."
+            ai_context:
+              instructions: "BigQuery type: STRING."
+
+          - name: owner_care_of_name
+            label: "Owner Mailing"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: CareOfName
+            description: "Standardized and parsed name for the person receiving mail on behalf of the owner (c/o name). Business field name in the product spec: OWNER CARE OF NAME."
+            ai_context:
+              synonyms:
+                - "care of"
+                - "c/o name"
+              instructions: "BigQuery type: STRING."
+
+          - name: mailing_opt_out_indicator
+            label: "Owner Mailing"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: AddrOptSourceCd
+            description: "Indicates the property owner has contacted the DMA (Direct Marketing Association) to opt out of mail solicitation. NULL/blank means no opt-out is on file - it does not mean opted-in. Business field name in the product spec: MAILING OPT OUT INDICATOR."
+            ai_context:
+              synonyms:
+                - "opt out"
+                - "do not mail"
+              instructions: "BigQuery type: STRING. Flag column. Common filter column. Value groups: opted out (Owner has opted out of direct mail via the DMA): 'Y'; no opt out on file (No opt-out on file (NULL/blank) - not evidence of opt-in): NULL."
+
+          # --- Primary Geometry ---
+
+          - name: parcel_geometry_wkt
+            label: "Primary Geometry"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: parcel_geometry_wkt
+            description: "Parcel boundary polygon as a native GEOGRAPHY column (EPSG:4326) despite the _wkt name - use it directly in ST_ functions and never wrap it in ST_GEOGFROMTEXT. Every value is a single POLYGON. It is the primary geometry (the CARTO geomField of this table) and the source of the lot size of record: ST_AREA(ANY_VALUE(parcel_geometry_wkt)) / 4046.8564224 = parcel acres, computed once per parcel_shape_id. The table is not clustered, so spatial predicates against it go directly in WHERE. Cannot appear in GROUP BY or SELECT DISTINCT."
+            ai_context:
+              synonyms:
+                - "parcel boundary"
+                - "parcel shape"
+                - "geometry"
+              instructions: "BigQuery type: GEOGRAPHY."
+            custom_extensions:
+              - vendor_name: CARTO
+                data: '{"spatial_data": {"type": "polygon", "srid": 4326}}'
+
+          # --- Centroid Point ---
+
+          - name: parcel_centroid_longitude
+            label: "Centroid Point"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: parcel_longitude
+            description: "EPSG:4326 longitude in decimal degrees of either the centroid of the parcel shape geometry or a point that falls inside it. Business field name in the product spec: PARCEL CENTROID LONGITUDE."
+            ai_context:
+              synonyms:
+                - "centroid longitude"
+                - "parcel longitude"
+              instructions: "BigQuery type: NUMERIC. Coordinate (longitude, EPSG:4326) paired with parcel_latitude. Build a point with ST_GEOGPOINT(CAST(parcel_longitude AS FLOAT64), CAST(parcel_latitude AS FLOAT64)) - longitude first. For maps and boundaries prefer the parcel polygon parcel_geometry_wkt; this point is the fallback when only a point is needed."
+
+          - name: parcel_centroid_latitude
+            label: "Centroid Point"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: parcel_latitude
+            description: "EPSG:4326 latitude in decimal degrees of either the centroid of the parcel shape geometry or a point that falls inside it. Business field name in the product spec: PARCEL CENTROID LATITUDE."
+            ai_context:
+              synonyms:
+                - "centroid latitude"
+                - "parcel latitude"
+              instructions: "BigQuery type: NUMERIC. Coordinate (latitude, EPSG:4326) paired with parcel_longitude. Build a point with ST_GEOGPOINT(CAST(parcel_longitude AS FLOAT64), CAST(parcel_latitude AS FLOAT64)) - longitude first. For maps and boundaries prefer the parcel polygon parcel_geometry_wkt; this point is the fallback when only a point is needed."
+
+          - name: parcel_centroid_geohash
+            label: "Centroid Point"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: parcel_centroid_geohash
+            description: "Geohash encoding of parcel_longitude/parcel_latitude. Informational only - not a renderable geometry and not spatially queryable on its own."
+            ai_context:
+              instructions: "BigQuery type: STRING."
+
+          # --- Property ID ---
+
+          - name: standardized_fips_code
+            label: "Property ID"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: CntyCd
+            description: "A defined, persistent, 5-digit code that uniquely identifies every county or county equivalent. May be based on a prior version of the FIPS code rather than the current one; in this study table it is '12071' on every row, the same as fips. Business field name in the product spec: STANDARDIZED FIPS CODE."
+            ai_context:
+              synonyms:
+                - "standardized fips"
+              instructions: "BigQuery type: STRING. Single value in this table: '12071'."
+
+          - name: apn_sequence_number
+            label: "Property ID"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: PclSeqNbr
+            description: "Internal sequence number used to ensure uniqueness of the Assessor's Parcel Number. Not a metric - do not aggregate. Business field name in the product spec: APN SEQUENCE NUMBER."
+            ai_context:
+              instructions: "BigQuery type: INT64."
+
+          - name: composite_property_linkage_key
+            label: "Property ID"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: compositepropertylinkagekey
+            description: "Unique property key used to link to other (legacy product) files. Fixed-width: the APN component is padded with blanks out to 45 characters within the composite key - trim before displaying or joining on it. Business field name in the product spec: COMPOSITE PROPERTY LINKAGE KEY."
+            ai_context:
+              synonyms:
+                - "linkage key"
+                - "legacy property key"
+              instructions: "BigQuery type: STRING. Identifier column."
+
+          - name: fips_code
+            label: "Property ID"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: fips
+            description: "The current 5-digit Federal Information Processing Series code of the county or county equivalent, from the property record. '12071' (Lee County, FL) on every row of this study table - it never narrows a query here, and a question about any other county has no rows. Equal to statecode||countycode and CntyCd on every row. Business field name in the product spec: FIPS CODE."
+            ai_context:
+              synonyms:
+                - "fips"
+                - "county fips code"
+              instructions: "BigQuery type: STRING. 5-digit current FIPS; the single value in this table is '12071'."
+
+          - name: tax_account_number
+            label: "Property ID"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: AcctNbr
+            description: "The county or source number used primarily for billing. Typically not unique to a parcel - multiple parcels can be combined on one tax bill. In Lee County it holds the 8-digit Folio ID and is identical to alternate_apn on every row (one per property here). Business field name in the product spec: TAX ACCOUNT NUMBER."
+            ai_context:
+              synonyms:
+                - "tax account"
+                - "billing account number"
+              instructions: "BigQuery type: STRING."
+
+          - name: online_formatted_parcel_id
+            label: "Property ID"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: PclIdIrisFrmtd
+            description: "APN reformatted to align with the display conventions used by certain online applications - typically the dashed form users quote. In Lee County it is the dashed STRAP number ('22-47-25-B4-0040I.0010', where original_apn is '224725B40040I0010'); removing the dashes and dots gives original_apn on every row. Include it when matching a user-supplied APN. Business field name in the product spec: ONLINE FORMATTED PARCEL ID."
+            ai_context:
+              synonyms:
+                - "formatted apn"
+                - "formatted parcel id"
+              instructions: "BigQuery type: STRING."
+
+          # --- Location ---
+
+          - name: census_id
+            label: "Location"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: SitusCensID
+            description: "Composite of Census Tract, Census Block Group, Census Block, and Census Block Suffix, as established by the US Census Bureau (here 10 characters: 6-digit tract + 1-digit block group + 3-digit block, e.g. '0505021007'). It comes from the property record in a different census vintage from census_tract_id: its tract prefix disagrees with census_tract_id on 4.6% of rows and shows 26 distinct tracts against 8, so never use it for tract or block group grouping - use tract_geoid. Business field name in the product spec: CENSUS ID."
+            ai_context:
+              synonyms:
+                - "census geography id"
+              instructions: "BigQuery type: STRING. Common filter column."
+
+          - name: range
+            label: "Location"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: RangeCd
+            description: "The Public Land Survey System (PLSS) 'range' portion of the property's legal description - numbered east or west of a predetermined meridian in six-mile intervals, extending north-south. Business field name in the product spec: RANGE."
+            ai_context:
+              synonyms:
+                - "plss range"
+                - "survey range"
+              instructions: "BigQuery type: STRING."
+
+          - name: township
+            label: "Location"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: TownshipCd
+            description: "The Public Land Survey System (PLSS) 'township' portion of the property's legal description - numbered north or south of a predetermined baseline in six-mile intervals, extending east-west. Business field name in the product spec: TOWNSHIP."
+            ai_context:
+              synonyms:
+                - "plss township"
+                - "survey township"
+              instructions: "BigQuery type: STRING."
+
+          - name: section
+            label: "Location"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: SectionCd
+            description: "The Public Land Survey System (PLSS) 'section' portion of the property's legal description - a one-square-mile subdivision; there are 36 sections within the intersection of a range/township. This is a PLSS survey term, not a reference to any grouping within this document or table. Business field name in the product spec: SECTION."
+            ai_context:
+              synonyms:
+                - "plss section"
+                - "survey section"
+              instructions: "BigQuery type: STRING."
+
+          - name: quarter_section
+            label: "Location"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: QTRSectionCd
+            description: "A PLSS section divided into four sub-sections (e.g., NE, NW, SE, SW). Business field name in the product spec: QUARTER SECTION. NOT POPULATED IN THIS TABLE: entirely NULL on every row of the study extract, so questions about this attribute cannot be answered here - say so rather than filtering on it."
+            ai_context:
+              synonyms:
+                - "plss quarter section"
+              instructions: "BigQuery type: STRING."
+
+          # --- Property ---
+
+          - name: land_use_code
+            label: "Property"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: IrisLandUseCd
+            description: "Proprietary Cotality land use code, converted from various county land use codes, to aid search and extract. Always a 3-digit string, never NULL in this table (74 distinct codes here), organized in numeric bands by broad category. A filter on this column is MANDATORY for any homes/residential question - the table contains every property type. The 1xx 'residential' band also holds hotels, motels, a nursing home, an orphanage and whole apartment buildings, so use the homes value group for homes/houses and '163' for single-family (see LAND USE in the dataset instructions). Most common here: 163 SFR, 112 CONDOMINIUM, 137 MOBILE HOME, 465 RESIDENTIAL LOT, 132 MULTI FAMILY 10 UNITS LESS, 400 VACANT LAND. Business field name in the product spec: LAND USE CODE."
+            ai_context:
+              synonyms:
+                - "land use"
+                - "use code"
+                - "zoning classification"
+                - "property use type"
+              instructions: "BigQuery type: STRING. High-cardinality code column (50+ distinct codes). The full code list lives in a separate product lookup table that is not part of this model; to see which codes occur, run SELECT DISTINCT IrisLandUseCd for the area of interest. Value groups: residential (Whole residential band (100-199): dwellings plus hotels/motels, group quarters, timeshares, common areas and apartment buildings - use only for broad 'residential property' questions): sample codes '100', '102', '103', '106', '112', '131', '137', '163'; homes (Individual dwellings for homes/houses questions: residential NEC, townhouse, cabin, co-op, condo (incl. mid/high-rise), duplex, triplex, quadruplex, mobile/manufactured home, PUD, rural homesite, SFR): sample codes '100', '102', '109', '111', '112', '115', '116', '117', '137', '138', '148', '151', '160', '163', '165'; single family (Single-family residence (SFR). Note 106 is APARTMENT, not single-family): sample codes '163'; multifamily buildings (Whole apartment / multi-family buildings and complexes): sample codes '103', '106', '131', '132', '133', '134', '136'; lodging and group quarters (Hotels, motels, transient lodging, timeshares, dormitories, group quarters, nursing homes - in the 1xx band but not homes): sample codes '118', '119', '127', '130', '142', '155', '156', '157', '164', '167', '199'; commercial (Office, retail, hotel, mixed commercial use (200-299)): sample codes '200', '201', '202'; industrial (Manufacturing, warehousing, extraction, utilities (300-399)): sample codes '300', '320', '324', '336', '358', '364'; vacant (Vacant or unimproved land (400-499)): sample codes '400', '401', '410'."
+
+          - name: zoning_code
+            label: "Property"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: ZnCd
+            description: "County and/or local jurisdiction zoning code. Explicitly NOT standardized across jurisdictions - do not treat this as a reliable filter enum or compare values across counties. Business field name in the product spec: ZONING CODE."
+            ai_context:
+              synonyms:
+                - "zoning"
+              instructions: "BigQuery type: STRING."
+
+          - name: property_indicator_code
+            label: "Property"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: PropIndCd
+            description: "Proprietary general code used to quickly recognize specific property types (e.g., Single Family Residence, Condominium, Commercial). Business field name in the product spec: PROPERTY INDICATOR CODE."
+            ai_context:
+              synonyms:
+                - "property type"
+                - "property indicator"
+              instructions: "BigQuery type: STRING. Common filter column. Value groups: residential (Housing types): '10', '11', '21', '22', '23'; commercial (Commercial property types): '20', '24', '25', '26', '27', '28', '29', '30', '31', '32'; industrial (Industrial property types): '50', '51', '52', '53', '54'; other (Agricultural, vacant, exempt, or unclassified): '00', '70', '80', '90'."
+
+          - name: manufactured_home_indicator
+            label: "Property"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: MobileHomeInd
+            description: "Indicates a manufactured home is present on the parcel. Presence encoding: the only populated value is 'Y'; NULL/blank means not indicated (not confirmed absent) and no 'N' value exists - WHERE MobileHomeInd = 'N' matches nothing; use IS NULL for the negative case. Business field name in the product spec: MANUFACTURED HOME INDICATOR."
+            ai_context:
+              synonyms:
+                - "mobile home"
+                - "manufactured home"
+              instructions: "BigQuery type: STRING. Flag column. Common filter column. Value groups: present (Manufactured home present): 'Y'; not indicated (Not indicated (NULL/blank) - not confirmed absent): NULL."
+
+          - name: number_of_buildings
+            label: "Property"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: SumNbrBldg
+            description: "Total number of buildings on the parcel. Property (CLIP)-grain value - repeats on every row sharing the same clip; dedupe on clip before aggregating. Business field name in the product spec: NUMBER OF BUILDINGS."
+            ai_context:
+              synonyms:
+                - "building count"
+              instructions: "BigQuery type: INT64. Numeric measure, unit: count."
+
+          # --- Property Size ---
+
+          - name: front_footage
+            label: "Property Size"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: LandDimFrontNbr
+            description: "Linear feet across the front of the lot, facing the street, from the assessor property record. Property (CLIP)-grain value - repeats on every row sharing the same clip; collapse to one row per clip (GROUP BY clip + ANY_VALUE) before aggregating. Business field name in the product spec: FRONT FOOTAGE."
+            ai_context:
+              instructions: "BigQuery type: FLOAT64. Numeric measure, unit: feet."
+
+          - name: depth_footage
+            label: "Property Size"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: LandDimDepthNbr
+            description: "Linear feet of lot depth (front to back), from the assessor property record. Property (CLIP)-grain value - repeats on every row sharing the same clip; collapse to one row per clip (GROUP BY clip + ANY_VALUE) before aggregating. Business field name in the product spec: DEPTH FOOTAGE."
+            ai_context:
+              instructions: "BigQuery type: FLOAT64. Numeric measure, unit: feet."
+
+          - name: total_number_of_acres
+            label: "Property Size"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: LandDimAcresTotal
+            description: "Assessor (derived or county-provided) acreage for the property's whole holding - NOT the lot size of record. Property (CLIP)-grain value from the property record (verified constant within a clip): a property spanning several parcels carries its full total on each parcel row, and condo units on a shared parcel each carry the full parcel acreage (99% of unit rows on shared parcels here), so summing it over units multiplies the parcel's area. For a property on exactly one parcel it matches the polygon closely (median ratio 1.00, within 10% for 98.8% of such properties in this table). For lot-size filters, rankings and totals use the parcel polygon area instead (see LOT SIZE in the table instructions); use this only when the assessor figure is asked for, and say so. Business field name in the product spec: TOTAL NUMBER OF ACRES."
+            ai_context:
+              synonyms:
+                - "assessor acres"
+                - "assessor lot acreage"
+                - "county acreage"
+              instructions: "BigQuery type: FLOAT64. Numeric measure, unit: acres. Assessor value, repeats per parcel of a multi-parcel property. Never NULL in this study table, maximum 255.82 acres; none of the nationwide default/cap values (22956.8411 acres, 999,999,999 sqft) occur here."
+
+          - name: total_land_square_footage
+            label: "Property Size"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: LandDimSqFtTotal
+            description: "Assessor land area in square feet for the property's whole holding - NOT the lot size of record. Property (CLIP)-grain value with the same caveats as LandDimAcresTotal; use the parcel polygon area (see LOT SIZE in the table instructions) for lot-size filters, rankings and totals. Business field name in the product spec: TOTAL LAND SQUARE FOOTAGE."
+            ai_context:
+              synonyms:
+                - "assessor land square footage"
+                - "assessor lot sqft"
+              instructions: "BigQuery type: INT64. Numeric measure, unit: sqft. Assessor value, repeats per parcel of a multi-parcel property. Never NULL in this study table, maximum 11,143,468 sqft; the nationwide cap value 999999999 does not occur here."
+
+          # --- Intelligence ---
+
+          - name: tract_geoid
+            label: "Intelligence"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: tract_geoid
+            description: "Full 11-digit 2020 Census tract GEOID (2-digit state + 3-digit county + 6-digit tract), e.g. '12071050318'. Added to this study extract; not in the production Parcel Essentials table. Never NULL and equal to fips || census_tract_id on every row. Eight values: '12071050315', '12071050316', '12071050317', '12071050318', '12071050401', '12071050502', '12071050601', '12071050603'. The primary sub-area and grouping key in this table, and the key for joining tract-level data. Parcel-shape-grain: 2 properties span parcels in two tracts, so take ANY_VALUE(tract_geoid) per clip when grouping property measures by tract."
+            ai_context:
+              synonyms:
+                - "census tract"
+                - "tract geoid"
+                - "census tract geoid"
+                - "tract"
+                - "neighborhood"
+              instructions: "BigQuery type: STRING. Common filter column. Group block groups by CONCAT(tract_geoid, census_blockgroup_id)."
+
+          - name: census_tract_id
+            label: "Intelligence"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: census_tract_id
+            description: "2020 Census tract code, a small statistical subdivision of a county defined by the US Census Bureau. Only the 6-digit tract code (e.g. '050318'), unique within a county but not nationally - use tract_geoid for the full GEOID and for grouping or joins."
+            ai_context:
+              synonyms:
+                - "census tract code"
+              instructions: "BigQuery type: STRING."
+
+          - name: census_blockgroup_id
+            label: "Intelligence"
+            expression:
+              dialects:
+                - dialect: ANSI_SQL
+                  expression: census_blockgroup_id
+            description: "2020 Census block group, a cluster of census blocks within a tract that shares demographic characteristics. Holds ONLY the 1-digit block group number within the tract ('1'-'4'), not a GEOID - the same value repeats in every tract. Build the 12-digit block group GEOID with CONCAT(tract_geoid, census_blockgroup_id) (23 block groups in this table) and never group on this column alone."
+            ai_context:
+              synonyms:
+                - "census block group"
+                - "block group"
+              instructions: "BigQuery type: STRING."
+
+    relationships:
+      - name: parcel_essentials_to_growth_indicators
+        from: parcel_essentials
+        to: growth_indicators
+        from_columns: [clip]
+        to_columns: [clip]
+        ai_context: >
+          Many parcel_essentials rows to one growth_indicators row, and most parcel_essentials
+          properties have no growth row. Both clip columns are 10-digit STRINGs, so the join is
+          p.clip = g.clip with no CAST. Verified 2026-10-14: all 918 growth properties match a
+          parcel_essentials clip (none unmatched), on 869 parcel shapes; the join returns 919
+          rows because one property (clip 5167985792) spans two parcel shapes, and 25 parcels
+          carry three growth properties each. In the other direction, 918 of the 21,447
+          parcel_essentials properties (4.3%) have a growth row; the other 20,529 were in no
+          growth stage in the release the growth table was cut from.
+
+    metrics:
+      - name: growth_property_count
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: COUNT(DISTINCT growth_indicators.clip)
+        description: "Number of distinct growth properties (clip). Use it instead of COUNT(*) on a join with parcel_essentials, which can return several rows per property."
+        ai_context:
+          synonyms:
+            - "number of growth properties"
+            - "growth property count"
+
+      - name: parcel_count
+        expression:
+          dialects:
+            - dialect: ANSI_SQL
+              expression: COUNT(DISTINCT parcel_essentials.parcel_shape_id)
+        description: "Number of distinct parcel shapes."
+        ai_context:
+          synonyms:
+            - "number of parcels"
+            - "parcel count"
