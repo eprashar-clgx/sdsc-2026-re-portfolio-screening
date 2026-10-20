@@ -98,7 +98,7 @@ Windows) and start it:
 - **Uploading to CARTO:** download the files you need from this repo's `data/` folder on GitHub (or from
   Colab's file panel) and import them in CARTO, as the notebook explains.
 
-## Set up Claude (optional)
+## Set up Claude (Recommended)
 
 With Claude in your browser you can repeat a few of the presenters' live steps: look up addresses and climate
 risk through the Cotality MCP server, and load the data into CARTO through the CARTO MCP server. The notebook
