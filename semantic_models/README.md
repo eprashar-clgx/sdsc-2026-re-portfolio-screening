@@ -38,4 +38,6 @@ The rules it pins down:
   different measures; compare their classes, not their values.
 
 The model is built from the Cotality Parcel Essentials and Growth Intelligence models, plus the workshop rules
-above. It includes worked examples whose SQL has been run against the workshop data.
+above. It includes worked examples, with SQL checked against the workshop data, for the step 5, 6 and 8
+prompts. Step 9 and the other questions in [`../maps/prompts.md`](../maps/prompts.md) are left open-ended on
+purpose: the agent works them out from the definitions above, as it would for any new question.

@@ -37,7 +37,6 @@ semantic_model:
         risk class: 'High risk' when k1_crs_median >= 61, otherwise 'Low risk'. k1_crs_median is NULL in 4 cells: their risk class and quadrant are 'Unclassified'.
         quadrant: High growth + Low risk = 'Pursue'; High growth + High risk = 'Watchlist'; Low growth + Low risk = 'Hold'; Low growth + High risk = 'Reassess'.
         Classify with the smoothed k1_growth_share and k1_crs_median, never with growth_share or crs_median: a single cell holds about 2 growth parcels, too few to classify on its own. A property's growth class, risk class and quadrant are those of its cell. The growth_h3_r9 fields growth_class, risk_class and quadrant implement these rules; in SQL, write the same CASE expressions.
-        Result: Pursue 62 cells, Watchlist 158, Hold 158, Reassess 77, Unclassified 4.
 
       AGGREGATION:
         total_parcels, growth_parcels and crs_parcels are additive across cells: SUM them. Never SUM the k1_* columns - each cell's k1 values include its 6 neighbours, so a sum counts parcels up to 7 times.
@@ -66,24 +65,16 @@ semantic_model:
     examples:
     - |
       Q: Which of my properties sit in high-growth cells?
-      Notes: Assign each property to its cell with portfolio_risk.h3 = growth_h3_r9.h3 and keep cells with k1_growth_share > 0.013. Expect 474 of the 931 properties (238 in Pursue cells, 236 in Watchlist cells). Never join to growth_parcels on clip - that returns nothing.
+      Notes: Assign each property to its cell with portfolio_risk.h3 = growth_h3_r9.h3 and keep cells with k1_growth_share > 0.013. Never join to growth_parcels on clip - that returns nothing.
       SQL: SELECT p.clip, p.resolved_address, p.risk_score, c.h3, c.k1_growth_share, p.geom FROM `YOUR_PROJECT.YOUR_DATASET.portfolio_risk` p JOIN `YOUR_PROJECT.YOUR_DATASET.growth_h3_r9` c USING (h3) WHERE c.k1_growth_share > 0.013 ORDER BY c.k1_growth_share DESC
     - |
       Q: Classify the cells into Pursue, Watchlist, Hold and Reassess and colour the map by quadrant.
-      Notes: Fixed cutoffs: high growth k1_growth_share > 0.013, high risk k1_crs_median >= 61. Returns 459 cells: Pursue 62, Watchlist 158, Hold 158, Reassess 77, Unclassified 4 (no CRS).
+      Notes: Fixed cutoffs: high growth k1_growth_share > 0.013, high risk k1_crs_median >= 61. Cells with no k1_crs_median are 'Unclassified'.
       SQL: SELECT h3, CASE WHEN k1_crs_median IS NULL THEN 'Unclassified' WHEN k1_growth_share > 0.013 AND k1_crs_median >= 61 THEN 'Watchlist' WHEN k1_growth_share > 0.013 THEN 'Pursue' WHEN k1_crs_median >= 61 THEN 'Reassess' ELSE 'Hold' END AS quadrant, k1_growth_share, k1_crs_median, geom FROM `YOUR_PROJECT.YOUR_DATASET.growth_h3_r9`
     - |
       Q: For each quadrant, show the number of cells, my properties and growth parcels, the average growth parcels per cell, and the mix of growth stages.
-      Notes: Cell totals, property counts and stage counts each get their own CTE, joined on quadrant, so no cell is counted once per property. Sum the raw growth_parcels, never k1_growth_parcels. Expect Watchlist: 158 cells, 236 properties, 608 growth parcels (3.85 per cell; 262 early, 107 ongoing, 239 completed); Pursue: 62, 238, 276 (4.45); Hold: 158, 222, 9; Reassess: 77, 234, 18; Unclassified: 4 cells, no properties.
+      Notes: Cell totals, property counts and stage counts each get their own CTE, joined on quadrant, so no cell is counted once per property. Sum the raw growth_parcels, never k1_growth_parcels.
       SQL: WITH cells AS (SELECT h3, total_parcels, growth_parcels, CASE WHEN k1_crs_median IS NULL THEN 'Unclassified' WHEN k1_growth_share > 0.013 AND k1_crs_median >= 61 THEN 'Watchlist' WHEN k1_growth_share > 0.013 THEN 'Pursue' WHEN k1_crs_median >= 61 THEN 'Reassess' ELSE 'Hold' END AS quadrant FROM `YOUR_PROJECT.YOUR_DATASET.growth_h3_r9`), props AS (SELECT c.quadrant, COUNT(DISTINCT p.clip) AS my_properties FROM `YOUR_PROJECT.YOUR_DATASET.portfolio_risk` p JOIN cells c USING (h3) GROUP BY 1), stages AS (SELECT c.quadrant, COUNTIF(g.growth_stage = 'Early Growth') AS early_growth, COUNTIF(g.growth_stage = 'Ongoing Growth') AS ongoing_growth, COUNTIF(g.growth_stage = 'Recently Completed') AS recently_completed FROM `YOUR_PROJECT.YOUR_DATASET.growth_parcels` g JOIN cells c USING (h3) GROUP BY 1), totals AS (SELECT quadrant, COUNT(*) AS cells, SUM(total_parcels) AS parcels, SUM(growth_parcels) AS growth_parcels FROM cells GROUP BY quadrant) SELECT t.quadrant, t.cells, IFNULL(p.my_properties, 0) AS my_properties, t.growth_parcels, ROUND(t.growth_parcels / t.cells, 2) AS growth_parcels_per_cell, IFNULL(s.early_growth, 0) AS early_growth, IFNULL(s.ongoing_growth, 0) AS ongoing_growth, IFNULL(s.recently_completed, 0) AS recently_completed FROM totals t LEFT JOIN props p USING (quadrant) LEFT JOIN stages s USING (quadrant) ORDER BY t.quadrant
-    - |
-      Q: Which Watchlist properties have a lower property-level climate risk than their cell?
-      Notes: Watchlist cells are high risk by definition, so these are Watchlist properties with 'Low property risk' (risk_score < 59, the portfolio median). Compare classes, never raw risk_score against k1_crs_median: they are different scores. Expect 47 of the 236 Watchlist properties; 1 Watchlist property is unscored.
-      SQL: SELECT p.clip, p.resolved_address, p.risk_score, p.cfl_score, p.tcwi_score, c.k1_crs_median, p.geom FROM `YOUR_PROJECT.YOUR_DATASET.portfolio_risk` p JOIN `YOUR_PROJECT.YOUR_DATASET.growth_h3_r9` c USING (h3) WHERE c.k1_growth_share > 0.013 AND c.k1_crs_median >= 61 AND p.risk_score < 59 ORDER BY p.risk_score
-    - |
-      Q: What kinds of properties are in my portfolio?
-      Notes: Land use comes from parcel_essentials through clip; collapse parcel_essentials to one row per clip first. 930 of the 931 properties match. IrisLandUseCd 163 is SFR and 112 is CONDOMINIUM (see the parcel_essentials instructions).
-      SQL: SELECT e.land_use, COUNT(*) AS my_properties FROM `YOUR_PROJECT.YOUR_DATASET.portfolio_risk` p JOIN (SELECT clip, ANY_VALUE(IrisLandUseCd) AS land_use FROM `YOUR_PROJECT.YOUR_DATASET.parcel_essentials` GROUP BY clip) e USING (clip) GROUP BY e.land_use ORDER BY my_properties DESC
     - |
       Q: Find the property with STRAP number 22-47-25-B4-0040I.0010
       Notes: Lee County APNs are STRAP numbers. PclIdIrisFrmtd holds the dashed form users quote ('22-47-25-B4-0040I.0010'); original_apn and apn_parcel_number_unformatted hold it without dashes or dots ('224725B40040I0010'); the 8-digit Folio ID ('10282351') is in alternate_apn and AcctNbr. APNs are unique within this table, so no location filter is needed.

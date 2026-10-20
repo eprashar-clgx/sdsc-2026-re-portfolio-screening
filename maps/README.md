@@ -58,4 +58,5 @@ Leave the **semantic model** empty for now: step 5 adds it.
 
 ## 5. Keep asking
 
-Use the questions in [`prompts.md`](prompts.md); each has the expected answer.
+Use the questions in [`prompts.md`](prompts.md); each has the expected answer, and says whether the semantic
+model includes it as a worked example or leaves it open-ended.
